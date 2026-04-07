@@ -1,0 +1,44 @@
+<html>
+  <head>
+    <title>tickets</title>
+    <style>
+body {
+  font-family: Arial;
+  text-align: center;
+  background: #f5f5f5;
+}
+
+h1 {
+  color: #2c3e50;
+}
+
+select, button, input {
+  padding: 10px;
+  margin: 10px;
+  width: 200px;
+}
+
+button {
+  background: #27ae60;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+</style>
+  </head>
+  <body>
+<h2>🎟 GERAYO Ticket</h2>
+<p><b>Booking ID:</b> <span id="id"></span></p>
+<p><b>Passenger:</b> John Doe</p>
+<p><b>Route:</b> Kigali → Huye</p>
+<p><b>Time:</b> 08:00</p>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const id = params.get("id");
+
+document.getElementById("ticket").innerText =
+  "Booking ID: " + id + " (Show this when boarding)";
+</script>
+</body>
+</html>
