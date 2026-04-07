@@ -1,0 +1,51 @@
+<style>
+body {
+  font-family: Arial;
+  text-align: center;
+  background: #f5f5f5;
+}
+
+h1 {
+  color: #2c3e50;
+}
+
+select, button, input {
+  padding: 10px;
+  margin: 10px;
+  width: 200px;
+}
+
+button {
+  background: #27ae60;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+</style>
+<h2>Available Buses</h2>
+<div id="results"></div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const from = params.get("from");
+const to = params.get("to");
+
+fetch(`/api/buses?from=${from}&to=${to}`)
+  .then(res => res.json())
+  .then(data => {
+    const container = document.getElementById("results");
+
+    data.forEach(bus => {
+      container.innerHTML += `
+        <div>
+          <p>${bus.company} - ${bus.time} - ${bus.price} RWF</p>
+          <button onclick="book(${bus.id})">Book</button>
+        </div>
+      `;
+    });
+  });
+
+function book(id) {
+  window.location.href = `booking.html?busId=${id}`;
+}
+</script>
