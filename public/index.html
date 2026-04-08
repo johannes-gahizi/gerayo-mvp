@@ -1,45 +1,142 @@
-<style>
-body {
-  font-family: Arial;
-  text-align: center;
-  background: #f5f5f5;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerayo - Book Bus Tickets</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #27ae60;
+            --primary-hover: #219150;
+            --bg-color: #f0f2f5;
+            --text-main: #2c3e50;
+            --white: #ffffff;
+        }
 
-h1 {
-  color: #2c3e50;
-}
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
 
-select, button, input {
-  padding: 10px;
-  margin: 10px;
-  width: 200px;
-}
+        /* The Main Container */
+        .search-container {
+            background: var(--white);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+        }
 
-button {
-  background: #27ae60;
-  color: white;
-  border: none;
-  cursor: pointer;
-} 
-</style>
-<h1>GERAYO - Book Bus Tickets</h1>
+        h1 {
+            color: var(--text-main);
+            font-weight: 700;
+            margin-bottom: 30px;
+            font-size: 24px;
+            letter-spacing: -0.5px;
+        }
 
-<select id="from">
-  <option>Kigali</option>
-</select>
+        /* Label styling */
+        .input-group {
+            text-align: left;
+            margin-bottom: 20px;
+        }
 
-<select id="to">
-  <option>Huye</option>
-  <option>Musanze</option>
-</select>
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+        }
 
-<button onclick="search()">Search</button>
+        /* Modern Input & Select styling */
+        select, input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            outline: none;
+            box-sizing: border-box; /* Critical for padding */
+        }
+
+        select:focus {
+            border-color: var(--primary-color);
+        }
+
+        /* Beautiful Button */
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+<div class="search-container">
+    <h1>GERAYO</h1>
+    
+    <div class="input-group">
+        <label for="from">Departure City</label>
+        <select id="from">
+            <option>Kigali</option>
+            <option>Gisenyi</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <label for="to">Destination</label>
+        <select id="to">
+            <option>Huye</option>
+            <option>Musanze</option>
+            <option>Rubavu</option>
+        </select>
+    </div>
+
+    <button onclick="search()">Search Tickets</button>
+</div>
 
 <script>
-function search() {
-  const from = document.getElementById("from").value;
-  const to = document.getElementById("to").value;
-
-  window.location.href = `results.html?from=${from}&to=${to}`;
-}
+    function search() {
+        const from = document.getElementById("from").value;
+        const to = document.getElementById("to").value;
+        // Basic validation
+        if (from === to) {
+            alert("Departure and destination cannot be the same!");
+            return;
+        }
+        window.location.href = `results.html?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+    }
 </script>
+
+</body>
+</html>

@@ -1,51 +1,178 @@
-<style>
-body {
-  font-family: Arial;
-  text-align: center;
-  background: #f5f5f5;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerayo - Available Buses</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #27ae60;
+            --text-dark: #2c3e50;
+            --text-muted: #64748b;
+            --bg: #f8fafc;
+            --white: #ffffff;
+        }
 
-h1 {
-  color: #2c3e50;
-}
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            color: var(--text-dark);
+        }
 
-select, button, input {
-  padding: 10px;
-  margin: 10px;
-  width: 200px;
-}
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
 
-button {
-  background: #27ae60;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-</style>
-<h2>Available Buses</h2>
-<div id="results"></div>
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-weight: 700;
+            font-size: 1.75rem;
+            margin-bottom: 5px;
+        }
+
+        .route-info {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Bus Card Styling */
+        .bus-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease;
+            border: 1px solid #edf2f7;
+        }
+
+        .bus-card:hover {
+            transform: scale(1.01);
+            border-color: var(--primary);
+        }
+
+        .bus-info-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .company-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .departure-time {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .bus-info-right {
+            text-align: right;
+        }
+
+        .price-tag {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        /* Empty State */
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h2>Available Buses</h2>
+        <p class="route-info" id="route-display">Searching routes...</p>
+    </header>
+
+    <div id="results">
+        </div>
+</div>
 
 <script>
-const params = new URLSearchParams(window.location.search);
-const from = params.get("from");
-const to = params.get("to");
+    const params = new URLSearchParams(window.location.search);
+    const from = params.get("from");
+    const to = params.get("to");
 
-fetch(`/api/buses?from=${from}&to=${to}`)
-  .then(res => res.json())
-  .then(data => {
-    const container = document.getElementById("results");
+    // Update the header with the search query
+    document.getElementById("route-display").innerText = `${from} → ${to}`;
 
-    data.forEach(bus => {
-      container.innerHTML += `
-        <div>
-          <p>${bus.company} - ${bus.time} - ${bus.price} RWF</p>
-          <button onclick="book(${bus.id})">Book</button>
-        </div>
-      `;
-    });
-  });
+    fetch(`/api/buses?from=${from}&to=${to}`)
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById("results");
+            container.innerHTML = ""; // Clear loader
 
-function book(id) {
-  window.location.href = `booking.html?busId=${id}`;
-}
+            if (data.length === 0) {
+                container.innerHTML = `<div class="no-results">No buses found for this route today.</div>`;
+                return;
+            }
+
+            data.forEach(bus => {
+                container.innerHTML += `
+                    <div class="bus-card">
+                        <div class="bus-info-left">
+                            <span class="company-name">${bus.company}</span>
+                            <span class="departure-time">🕒 Departs: ${bus.time}</span>
+                        </div>
+                        <div class="bus-info-right">
+                            <span class="price-tag">${bus.price.toLocaleString()} RWF</span>
+                            <button onclick="book(${bus.id})">Book Seat</button>
+                        </div>
+                    </div>
+                `;
+            });
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById("results").innerHTML = `<p style="text-align:center; color: red;">Error loading buses. Please try again.</p>`;
+        });
+
+    function book(id) {
+        window.location.href = `booking.html?busId=${id}`;
+    }
 </script>
+
+</body>
+</html>
