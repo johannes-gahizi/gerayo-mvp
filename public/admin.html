@@ -1,50 +1,237 @@
-<h1>GERAYO Admin Dashboard</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerayo Admin | Control Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-bg: #1e293b;
+            --primary: #27ae60;
+            --bg: #f1f5f9;
+            --white: #ffffff;
+            --text-main: #334155;
+        }
 
-<h2>Add Bus</h2>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            min-height: 100vh;
+        }
 
-<input id="company" placeholder="Company Name" />
-<input id="from" placeholder="From" />
-<input id="to" placeholder="To" />
-<input id="time" placeholder="Time" />
-<input id="price" placeholder="Price" />
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 240px;
+            background: var(--sidebar-bg);
+            color: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
 
-<button onclick="addBus()">Add Bus</button>
+        .sidebar h1 {
+            font-size: 20px;
+            color: var(--primary);
+            margin-bottom: 40px;
+            text-align: center;
+        }
 
-<h2>All Buses</h2>
-<div id="busList"></div>
+        .nav-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: #94a3b8;
+        }
+
+        .nav-item.active {
+            background: rgba(39, 174, 96, 0.1);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        h2 { margin-top: 0; color: var(--text-main); font-size: 1.25rem; }
+
+        /* Form Grid */
+        .admin-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+
+        .form-group { display: flex; flex-direction: column; }
+
+        label { font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 5px; }
+
+        input {
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            outline: none;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 11px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* Data Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th {
+            text-align: left;
+            background: #f8fafc;
+            padding: 12px;
+            font-size: 13px;
+            color: #64748b;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            color: var(--text-main);
+            font-size: 14px;
+        }
+
+        .status-badge {
+            background: #dcfce7;
+            color: #166534;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h1>GERAYO ADMIN</h1>
+    <div class="nav-item active">🚌 Manage Buses</div>
+    <div class="nav-item">🎟 View Bookings</div>
+    <div class="nav-item">📊 Reports</div>
+</div>
+
+<div class="main-content">
+    <div class="card">
+        <h2>Add New Bus Schedule</h2>
+        <div class="admin-form">
+            <div class="form-group">
+                <label>Company</label>
+                <input id="company" placeholder="e.g. Ritco">
+            </div>
+            <div class="form-group">
+                <label>From</label>
+                <input id="from" placeholder="Origin">
+            </div>
+            <div class="form-group">
+                <label>To</label>
+                <input id="to" placeholder="Destination">
+            </div>
+            <div class="form-group">
+                <label>Time</label>
+                <input id="time" type="time">
+            </div>
+            <div class="form-group">
+                <label>Price (RWF)</label>
+                <input id="price" type="number" placeholder="3000">
+            </div>
+            <button onclick="addBus()">Add Bus</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Active Bus Schedules</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Company</th>
+                    <th>Route</th>
+                    <th>Departure</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="busList">
+                </tbody>
+        </table>
+    </div>
+</div>
+
 <script>
-function addBus() {
-  const company = document.getElementById("company").value;
-  const from = document.getElementById("from").value;
-  const to = document.getElementById("to").value;
-  const time = document.getElementById("time").value;
-  const price = document.getElementById("price").value;
+    function addBus() {
+        const payload = {
+            company: document.getElementById("company").value,
+            from: document.getElementById("from").value,
+            to: document.getElementById("to").value,
+            time: document.getElementById("time").value,
+            price: document.getElementById("price").value
+        };
 
-  fetch("/api/add-bus", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ company, from, to, time, price })
-  })
-  .then(res => res.json())
-  .then(() => loadBuses());
-}
+        if (!payload.company || !payload.from || !payload.to) return alert("Fill all fields");
 
-function loadBuses() {
-  fetch("/api/all-buses")
-    .then(res => res.json())
-    .then(data => {
-      const container = document.getElementById("busList");
-      container.innerHTML = "";
+        fetch("/api/add-bus", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(() => {
+            loadBuses();
+            // Clear inputs
+            document.querySelectorAll('input').forEach(i => i.value = "");
+        });
+    }
 
-      data.forEach(bus => {
-        container.innerHTML += `
-          <p>${bus.company} | ${bus.from} → ${bus.to} | ${bus.time} | ${bus.price} RWF</p>
-        `;
-      });
-    });
-}
+    function loadBuses() {
+        fetch("/api/all-buses")
+            .then(res => res.json())
+            .then(data => {
+                const container = document.getElementById("busList");
+                container.innerHTML = data.map(bus => `
+                    <tr>
+                        <td style="font-weight:600">${bus.company}</td>
+                        <td>${bus.from} → ${bus.to}</td>
+                        <td>${bus.time}</td>
+                        <td>${Number(bus.price).toLocaleString()} RWF</td>
+                        <td><span class="status-badge">Active</span></td>
+                    </tr>
+                `).join('');
+            });
+    }
 
-loadBuses();
+    loadBuses();
 </script>
+
+</body>
+</html>
