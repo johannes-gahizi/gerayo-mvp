@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// ✅ ONE buses array (combined)
+// ✅ ONE buses array
 let buses = [
   { id: 1, company: "Volcano Express", from: "Kigali", to: "Huye", time: "08:00", price: 3000 },
   { id: 2, company: "Ritco", from: "Kigali", to: "Musanze", time: "09:30", price: 2500 },
@@ -15,11 +15,14 @@ let buses = [
 
 let bookings = [];
 
-// ✅ Search buses (Case-Insensitive & Space-Resistant)
+// ✅ Search buses
 app.get("/api/buses", (req, res) => {
   const { from, to } = req.query;
 
-  // Safety check to ensure parameters exist
+  // 👇 LOGGING DATA FOR DEBUGGING
+  console.log("Buses currently in memory:", buses); 
+  console.log(`User is searching for: From ${from} to ${to}`);
+
   if (!from || !to) {
     return res.json([]);
   }
@@ -35,25 +38,14 @@ app.get("/api/buses", (req, res) => {
 // ✅ Book ticket
 app.post("/api/book", (req, res) => {
   const { name, phone, busId } = req.body;
-
-  const booking = {
-    id: Math.floor(Math.random() * 100000),
-    name,
-    phone,
-    busId
-  };
-
+  const booking = { id: Math.floor(Math.random() * 100000), name, phone, busId };
   bookings.push(booking);
   res.json(booking);
 });
 
 // ✅ Admin: Add bus
 app.post("/api/add-bus", (req, res) => {
-  const bus = {
-    id: Date.now(),
-    ...req.body
-  };
-
+  const bus = { id: Date.now(), ...req.body };
   buses.push(bus);
   res.json(bus);
 });
