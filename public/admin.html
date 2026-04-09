@@ -30,6 +30,8 @@
             padding: 20px;
             display: flex;
             flex-direction: column;
+            position: fixed;
+            height: 100vh;
         }
 
         .sidebar h1 {
@@ -58,6 +60,7 @@
         .main-content {
             flex: 1;
             padding: 40px;
+            margin-left: 240px; /* Offset for fixed sidebar */
             overflow-y: auto;
         }
 
@@ -74,7 +77,7 @@
         /* Form Grid */
         .admin-form {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
             align-items: end;
         }
@@ -182,7 +185,22 @@
                     <th>Status</th>
                 </tr>
             </thead>
-            <tbody id="busList">
+            <tbody id="busList"></tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>All Passenger Bookings</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Passenger Name</th>
+                    <th>Phone</th>
+                    <th>Bus ID</th>
+                </tr>
+            </thead>
+            <tbody id="bookingList">
                 </tbody>
         </table>
     </div>
@@ -208,7 +226,6 @@
         .then(res => res.json())
         .then(() => {
             loadBuses();
-            // Clear inputs
             document.querySelectorAll('input').forEach(i => i.value = "");
         });
     }
@@ -230,7 +247,33 @@
             });
     }
 
+    // NEW: Function to load bookings from server
+    function loadBookings() {
+        fetch("/api/bookings")
+            .then(res => res.json())
+            .then(data => {
+                const container = document.getElementById("bookingList");
+                if (data.length === 0) {
+                    container.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">No bookings found yet.</td></tr>';
+                    return;
+                }
+                container.innerHTML = data.map(book => `
+                    <tr>
+                        <td style="font-family: monospace;">#${book.id}</td>
+                        <td style="font-weight:600">${book.name}</td>
+                        <td>${book.phone}</td>
+                        <td><span class="status-badge" style="background:#e0f2fe; color:#0369a1;">Bus ${book.busId}</span></td>
+                    </tr>
+                `).join('');
+            });
+    }
+
+    // Initial load
     loadBuses();
+    loadBookings();
+
+    // Refresh data every 30 seconds to see new bookings
+    setInterval(loadBookings, 30000);
 </script>
 
 </body>
