@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "company": "Volcano Express",
+    "from": "Kigali",
+    "to": "Huye",
+    "time": "08:00",
+    "price": 3000
+  },
+  {
+    "id": 2,
+    "company": "Ritco",
+    "from": "Kigali",
+    "to": "Musanze",
+    "time": "09:30",
+    "price": 2500
+  },
+  {
+    "id": 3,
+    "company": "Jaguar Executive",
+    "from": "Kigali",
+    "to": "Rubavu",
+    "time": "11:00",
+    "price": 4000
+  }
+]
