@@ -191,11 +191,11 @@
 <script>
     function addBus() {
         const payload = {
-            company: document.getElementById("company").value,
-            from: document.getElementById("from").value,
-            to: document.getElementById("to").value,
-            time: document.getElementById("time").value,
-            price: document.getElementById("price").value
+            company: document.getElementById("company").value.trim(),
+            from: document.getElementById("from").value.trim(),
+            to: document.getElementById("to").value.trim(),
+            time: document.getElementById("time").value.trim(),
+            price: document.getElementById("price").value.trim()
         };
 
         if (!payload.company || !payload.from || !payload.to) return alert("Fill all fields");
