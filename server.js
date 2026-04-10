@@ -1,66 +1,118 @@
 const path = require("path");
 const express = require("express");
+const { Pool } = require("pg");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// ✅ ONE buses array
-let buses = [
-  { id: 1, company: "Volcano Express", from: "Kigali", to: "Huye", time: "08:00", price: 3000 },
-  { id: 2, company: "Ritco", from: "Kigali", to: "Musanze", time: "09:30", price: 2500 },
-  { id: 3, company: "Jaguar Executive", from: "Kigali", to: "Rubavu", time: "11:00", price: 4000 }
-];
+// ✅ Connect to PostgreSQL
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
-let bookings = [];
+// ✅ Create tables
+async function createTables() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS buses (
+        id SERIAL PRIMARY KEY,
+        company TEXT,
+        from_city TEXT,
+        to_city TEXT,
+        time TEXT,
+        price INTEGER
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS bookings (
+        id SERIAL PRIMARY KEY,
+        name TEXT,
+        phone TEXT,
+        bus_id INTEGER
+      );
+    `);
+
+    console.log("Tables ready ✅");
+  } catch (err) {
+    console.error(err);
+  }
+}
+createTables();
 
 // ✅ Search buses
-app.get("/api/buses", (req, res) => {
+app.get("/api/buses", async (req, res) => {
   const { from, to } = req.query;
 
-  // 👇 LOGGING DATA FOR DEBUGGING
-  console.log("Buses currently in memory:", buses); 
-  console.log(`User is searching for: From ${from} to ${to}`);
+  try {
+    const result = await pool.query(
+      "SELECT * FROM buses WHERE LOWER(from_city)=LOWER($1) AND LOWER(to_city)=LOWER($2)",
+      [from, to]
+    );
 
-  if (!from || !to) {
-    return res.json([]);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).send("Search error");
   }
+});
 
-  const results = buses.filter(b =>
-    b.from.trim().toLowerCase() === from.trim().toLowerCase() &&
-    b.to.trim().toLowerCase() === to.trim().toLowerCase()
-  );
+// ✅ Add bus
+app.post("/api/add-bus", async (req, res) => {
+  const { company, from, to, time, price } = req.body;
 
-  res.json(results);
+  try {
+    const result = await pool.query(
+      "INSERT INTO buses (company, from_city, to_city, time, price) VALUES ($1,$2,$3,$4,$5) RETURNING *",
+      [company, from, to, time, price]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).send("Error adding bus");
+  }
+});
+
+// ✅ Get all buses
+app.get("/api/all-buses", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM buses");
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).send("Error fetching buses");
+  }
 });
 
 // ✅ Book ticket
-app.post("/api/book", (req, res) => {
+app.post("/api/book", async (req, res) => {
   const { name, phone, busId } = req.body;
-  const booking = { id: Math.floor(Math.random() * 100000), name, phone, busId };
-  bookings.push(booking);
-  res.json(booking);
+
+  try {
+    const result = await pool.query(
+      "INSERT INTO bookings (name, phone, bus_id) VALUES ($1,$2,$3) RETURNING *",
+      [name, phone, busId]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).send("Booking error");
+  }
 });
 
-// ✅ Admin: Add bus
-app.post("/api/add-bus", (req, res) => {
-  const bus = { id: Date.now(), ...req.body };
-  buses.push(bus);
-  res.json(bus);
-});
-
-// ✅ Admin: Get all buses
-app.get("/api/all-buses", (req, res) => {
-  res.json(buses);
-});
-
-// ✅ Admin: View bookings
-app.get("/api/bookings", (req, res) => {
-  res.json(bookings);
+// ✅ Get bookings
+app.get("/api/bookings", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM bookings");
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).send("Error fetching bookings");
+  }
 });
 
 // ✅ Start server
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
