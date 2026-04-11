@@ -50,7 +50,7 @@ async function createTables() {
 
     console.log("Tables ready ✅");
   } catch (err) {
-    console.error(err);
+    console.error("Error creating tables:", err);
   }
 }
 createTables();
@@ -62,7 +62,7 @@ app.post("/api/register", async (req, res) => {
   const { name, username, password } = req.body;
   try {
     const result = await pool.query(
-      "INSERT INTO companies (name, username, password) VALUES ($1,$2,$3) RETURNING *",
+      "INSERT INTO companies (name, username, password) VALUES ($1,$2,$3) RETURNING id, name, username",
       [name, username, password]
     );
     res.json(result.rows[0]);
@@ -71,33 +71,37 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// ✅ Updated Login (Database-driven)
+// ✅ UPDATED Login with Error Message
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
   try {
     const result = await pool.query(
-      "SELECT * FROM companies WHERE username=$1 AND password=$2",
+      "SELECT id, name FROM companies WHERE username=$1 AND password=$2",
       [username, password]
     );
 
     if (result.rows.length === 0) {
-      return res.json({ success: false });
+      // ✅ FIX: Added clear error message for the frontend
+      return res.json({ 
+        success: false, 
+        message: "Invalid username or password" 
+      });
     }
 
     const company = result.rows[0];
     res.json({
       success: true,
-      token: company.id, // Using ID as the simple token
+      token: company.id,
       companyName: company.name
     });
   } catch (err) {
+    console.error("Login Error:", err);
     res.status(500).json({ error: "Login error" });
   }
 });
 
 // --- BUS & BOOKING APIS ---
 
-// ✅ Search buses (Public route - doesn't need company_id filter)
 app.get("/api/buses", async (req, res) => {
   const { from, to } = req.query;
   try {
@@ -111,7 +115,6 @@ app.get("/api/buses", async (req, res) => {
   }
 });
 
-// ✅ Updated Add Bus (Now stores company_id)
 app.post("/api/add-bus", async (req, res) => {
   const { company_id, company, from, to, time, price } = req.body;
   try {
@@ -125,7 +128,6 @@ app.post("/api/add-bus", async (req, res) => {
   }
 });
 
-// ✅ Updated Get All Buses (Filtered by company)
 app.get("/api/all-buses", async (req, res) => {
   const { company_id } = req.query;
   try {
@@ -139,7 +141,6 @@ app.get("/api/all-buses", async (req, res) => {
   }
 });
 
-// ✅ Book ticket
 app.post("/api/book", async (req, res) => {
   const { company_id, name, phone, busId } = req.body;
   try {
@@ -153,7 +154,6 @@ app.post("/api/book", async (req, res) => {
   }
 });
 
-// ✅ Updated Get Bookings (Filtered by company)
 app.get("/api/bookings", async (req, res) => {
   const { company_id } = req.query;
   try {
