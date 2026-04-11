@@ -42,7 +42,6 @@
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; }
         th { color: #64748b; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.025em; }
         
-        /* Status Badges */
         .status-badge {
             padding: 4px 8px;
             border-radius: 4px;
@@ -127,7 +126,6 @@
 </div>
 
 <script>
-/* GET LOCAL DATA */
 const currentCompanyId = localStorage.getItem("companyId");
 const currentCompanyName = localStorage.getItem("companyName");
 
@@ -181,6 +179,13 @@ function loadBuses() {
 }
 
 function addBus() {
+    // 🛡️ 1. Prevent adding orphaned data if session is lost
+    if (!currentCompanyId || !currentCompanyName) {
+        alert("Session expired. Please login again.");
+        logout();
+        return;
+    }
+
     const payload = {
         company_id: currentCompanyId,
         company: currentCompanyName,
@@ -190,7 +195,10 @@ function addBus() {
         price: document.getElementById("price").value
     };
 
-    if (!payload.from || !payload.to || !payload.price) return alert("Fill all fields");
+    // 🛡️ 2. Stricter validation including Time
+    if (!payload.from || !payload.to || !payload.price || !payload.time) {
+        return alert("Please fill in all fields (Origin, Destination, Time, and Price)");
+    }
 
     fetch("/api/add-bus", {
         method: "POST",
@@ -204,7 +212,6 @@ function addBus() {
 
 function loadBookings() {
     const list = document.getElementById("bookingList");
-    // ✅ Updated colspan to 5 to match new header count
     list.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:20px;">Loading bookings...</td></tr>`;
 
     fetch(`/api/bookings?company_id=${currentCompanyId}`)
@@ -219,8 +226,8 @@ function loadBookings() {
                 return;
             }
             list.innerHTML = data.map(b => {
-                // ✅ Logic to style the status badge
-                const statusClass = b.status === 'PAID' ? 'status-paid' : 'status-pending';
+                const status = b.status || "PENDING";
+                const statusClass = status === 'PAID' ? 'status-paid' : 'status-pending';
                 
                 return `
                     <tr>
@@ -228,7 +235,7 @@ function loadBookings() {
                         <td>${b.name}</td>
                         <td>${b.phone}</td>
                         <td>${b.bus_id}</td>
-                        <td><span class="status-badge ${statusClass}">${b.status}</span></td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
                     </tr>
                 `;
             }).join("");
