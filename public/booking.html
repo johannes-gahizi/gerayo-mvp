@@ -83,7 +83,6 @@
             box-shadow: 0 0 0 4px rgba(39, 174, 96, 0.1);
         }
 
-        /* Styling for the Confirm Button */
         .btn-confirm {
             width: 100%;
             background: var(--primary);
@@ -108,11 +107,12 @@
             box-shadow: 0 10px 15px -3px rgba(39, 174, 96, 0.3);
         }
 
-        .btn-confirm:active {
-            transform: translateY(0);
+        .btn-confirm:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
         }
 
-        /* Mini info section */
         .secure-note {
             display: flex;
             align-items: center;
@@ -134,12 +134,12 @@
 
     <div class="input-wrapper">
         <label for="name">Full Name</label>
-        <input type="text" id="name" placeholder="e.g. Jean Doe" autocomplete="name">
+        <input type="text" id="name" placeholder="e.g. Jean Doe">
     </div>
 
     <div class="input-wrapper">
         <label for="phone">Phone Number</label>
-        <input type="tel" id="phone" placeholder="e.g. 078XXXXXXX" autocomplete="tel">
+        <input type="tel" id="phone" placeholder="e.g. 078XXXXXXX">
     </div>
 
     <button class="btn-confirm" onclick="confirmBooking()">
@@ -152,8 +152,10 @@
 </div>
 
 <script>
+    // 1. Get BOTH IDs from the URL
     const params = new URLSearchParams(window.location.search);
     const busId = params.get("busId");
+    const company_id = params.get("companyId"); // This gets the "1" from your URL
 
     function confirmBooking() {
         const name = document.getElementById("name").value.trim();
@@ -164,27 +166,42 @@
             return;
         }
 
-        // Visual feedback on button
+        if (!busId || !company_id) {
+            alert("Error: Missing bus or company information. Please search again.");
+            return;
+        }
+
         const btn = document.querySelector('.btn-confirm');
         btn.innerText = "Processing...";
         btn.disabled = true;
 
+        // 2. Send the exact payload the server expects
         fetch("/api/book", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ name, phone, busId })
+            body: JSON.stringify({ 
+                busId: busId, 
+                company_id: company_id, 
+                name: name, 
+                phone: phone 
+            })
         })
         .then(res => {
-            if (!res.ok) throw new Error("Failed to book");
+            if (!res.ok) {
+                // This helps us see the real error if it fails again
+                return res.json().then(err => { throw new Error(err.error || "Failed to book") });
+            }
             return res.json();
         })
         .then(data => {
-            window.location.href = `ticket.html?id=${data.id}`;
+            // Redirect to ticket page (using bookingId which matches your server response)
+            window.location.href = `ticket.html?id=${data.bookingId}`;
         })
         .catch(err => {
-            alert("Something went wrong. Please try again.");
+            console.error("Booking Error:", err);
+            alert("Error: " + err.message);
             btn.innerText = "Confirm Booking";
             btn.disabled = false;
         });
