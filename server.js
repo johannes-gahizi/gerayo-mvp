@@ -7,13 +7,13 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-// Database Connection
+// --- Database Connection ---
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
 
-// Database Initialization
+// --- Database Initialization ---
 async function createTables() {
     try {
         await pool.query(`
@@ -53,7 +53,6 @@ createTables();
 
 app.post("/api/login", async (req, res) => {
     const { username, password } = req.body;
-    
     if (!username || !password) return res.status(400).json({ error: "Missing credentials" });
 
     try {
@@ -109,6 +108,35 @@ app.post('/api/book', async (req, res) => {
     }
 });
 
+// NEW: This is the missing piece that makes your ticket.html work!
+app.get('/api/ticket/:id', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                bookings.id as booking_id,
+                bookings.name as passenger_name,
+                bookings.phone as passenger_phone,
+                bookings.status,
+                buses.from_city,
+                buses.to_city,
+                buses.time,
+                buses.price,
+                companies.name as company_name
+            FROM bookings
+            JOIN buses ON bookings.bus_id = buses.id
+            JOIN companies ON bookings.company_id = companies.id
+            WHERE bookings.id = $1
+        `, [req.params.id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Ticket not found" });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/pay', async (req, res) => {
     const { bookingId, company_id } = req.body;
     if (!bookingId || !company_id) return res.status(400).json({ error: "Invalid payment request" });
@@ -143,9 +171,7 @@ app.post('/api/add-bus', async (req, res) => {
 
 app.get('/api/all-buses', async (req, res) => {
     const { company_id } = req.query;
-    // 🛡️ Safety: return empty array if no ID provided
     if (!company_id) return res.json([]);
-
     try {
         const result = await pool.query('SELECT * FROM buses WHERE company_id = $1', [company_id]);
         res.json(result.rows);
@@ -157,7 +183,6 @@ app.get('/api/all-buses', async (req, res) => {
 app.get('/api/bookings', async (req, res) => {
     const { company_id } = req.query;
     if (!company_id) return res.json([]);
-
     try {
         const result = await pool.query('SELECT * FROM bookings WHERE company_id = $1', [company_id]);
         res.json(result.rows);
@@ -166,30 +191,20 @@ app.get('/api/bookings', async (req, res) => {
     }
 });
 
-// --- SECURE SETUP ROUTE ---
-// To use this, visit: /api/setup-companies?key=admin123
+// --- SETUP ROUTE ---
 app.get('/api/setup-companies', async (req, res) => {
     const { key } = req.query;
     if (key !== 'admin123') return res.status(403).send("Unauthorized");
-
     try {
-        // 1. Ensure companies table exists
         await pool.query(`CREATE TABLE IF NOT EXISTS companies (id SERIAL PRIMARY KEY, name TEXT NOT NULL, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL)`);
-
-        // 2. Fix BUSES table
         await pool.query(`ALTER TABLE buses ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)`);
-
-        // 3. FIX: Add company_id to BOOKINGS table (This is what's causing your error!)
         await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)`);
-
-        // 4. Insert default accounts
         await pool.query(`INSERT INTO companies (name, username, password) VALUES ('Ritco', 'ritco', '1234'), ('Volcano Express', 'volcano', '1234') ON CONFLICT (username) DO NOTHING`);
-
-        res.send("Bookings table repaired and database is ready! ✅");
+        res.send("Database structure checked and ready! ✅");
     } catch (err) {
-        console.error(err);
         res.status(500).send("Error: " + err.message);
     }
 });
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
