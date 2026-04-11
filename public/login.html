@@ -126,11 +126,22 @@
   </div>
 
   <script>
+    // ✅ 1. Auto-redirect if already logged in
+    const existingId = localStorage.getItem("companyId");
+    if (existingId && existingId !== "undefined") {
+        window.location.href = "/admin.html";
+    }
+
     async function login() {
-      const username = document.getElementById("username").value;
+      const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value;
       const errorEl = document.getElementById("error");
       const btn = document.getElementById("loginBtn");
+
+      if (!username || !password) {
+          errorEl.innerText = "Please enter both credentials.";
+          return;
+      }
 
       // Visual feedback
       errorEl.innerText = "";
@@ -147,14 +158,17 @@
         const data = await res.json();
 
         if (data.success) {
-          localStorage.setItem("token", data.token);
+          // ✅ 2. Save both ID and Name for the Admin Panel to use
+          localStorage.setItem("companyId", data.token);
+          localStorage.setItem("companyName", data.companyName);
           window.location.href = "/admin.html";
         } else {
-          errorEl.innerText = "Invalid credentials. Please try again.";
+          errorEl.innerText = data.message || "Invalid credentials. Please try again.";
           btn.innerText = "Sign In";
           btn.disabled = false;
         }
       } catch (err) {
+        console.error("Login Error:", err);
         errorEl.innerText = "Server connection failed.";
         btn.innerText = "Sign In";
         btn.disabled = false;

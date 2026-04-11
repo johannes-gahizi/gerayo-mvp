@@ -6,8 +6,9 @@
     <title>Gerayo Admin | Control Panel</title>
     
     <script>
-        const token = localStorage.getItem("token");
-        if (token !== "secure123") {
+        const companyId = localStorage.getItem("companyId");
+        if (!companyId || companyId === "undefined") {
+            localStorage.clear();
             window.location.href = "/login.html";
         }
     </script>
@@ -23,118 +24,19 @@
             --text-main: #334155;
             --topbar-height: 60px;
         }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg);
-            margin: 0;
-            display: flex;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            width: 240px;
-            background: var(--sidebar-bg);
-            color: white;
-            padding: 20px;
-            position: fixed;
-            height: 100vh;
-            z-index: 1000;
-        }
-
-        .sidebar h1 {
-            text-align: center;
-            color: var(--primary);
-            margin-bottom: 30px;
-            font-size: 1.5rem;
-        }
-
-        .nav-item {
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 8px;
-            cursor: pointer;
-            color: #94a3b8;
-            display: flex;
-            align-items: center;
-            transition: 0.2s;
-        }
-
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); margin: 0; display: flex; }
+        .sidebar { width: 240px; background: var(--sidebar-bg); color: white; padding: 20px; position: fixed; height: 100vh; z-index: 1000; }
+        .sidebar h1 { text-align: center; color: var(--primary); margin-bottom: 30px; font-size: 1.5rem; }
+        .nav-item { padding: 12px; margin: 8px 0; border-radius: 8px; cursor: pointer; color: #94a3b8; display: flex; align-items: center; transition: 0.2s; }
         .nav-item:hover { background: rgba(255, 255, 255, 0.05); color: white; }
         .nav-item.active { background: rgba(39,174,96,0.1); color: var(--primary); font-weight: 600; }
-
-        /* Top Navigation Bar */
-        .top-bar {
-            position: fixed;
-            top: 0;
-            right: 0;
-            left: 240px; /* Offset by sidebar width */
-            height: var(--topbar-height);
-            background: var(--white);
-            display: flex;
-            align-items: center;
-            justify-content: flex-end; /* Pushes content to the right */
-            padding: 0 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            z-index: 900;
-        }
-
-        .logout-btn {
-            background: var(--danger);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.875rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: opacity 0.2s;
-        }
-
-        .logout-btn:hover { opacity: 0.9; }
-
-        /* Main Content Area */
-        .main-content {
-            margin-left: 240px;
-            margin-top: var(--topbar-height); /* Offset by topbar height */
-            padding: 30px;
-            width: 100%;
-        }
-
-        .card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .admin-form {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-        }
-
-        input {
-            padding: 10px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            font-family: inherit;
-        }
-
-        .action-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
+        .top-bar { position: fixed; top: 0; right: 0; left: 240px; height: var(--topbar-height); background: var(--white); display: flex; align-items: center; justify-content: flex-end; padding: 0 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 900; }
+        .logout-btn { background: var(--danger); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.875rem; display: flex; align-items: center; gap: 8px; transition: opacity 0.2s; }
+        .main-content { margin-left: 240px; margin-top: var(--topbar-height); padding: 30px; width: 100%; }
+        .card { background: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .admin-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
+        input { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; }
+        .action-btn { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 600; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; }
         th { color: #64748b; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.025em; }
@@ -150,6 +52,7 @@
 </div>
 
 <div class="top-bar">
+    <div id="welcomeUser" style="margin-right: 20px; color: var(--text-main); font-size: 0.9rem;"></div>
     <button class="logout-btn" onclick="logout()">
         🚪 Sign Out
     </button>
@@ -160,7 +63,6 @@
         <div class="card">
             <h2>Add New Bus</h2>
             <div class="admin-form">
-                <input id="company" placeholder="Company Name">
                 <input id="from" placeholder="Origin">
                 <input id="to" placeholder="Destination">
                 <input id="time" type="time">
@@ -207,9 +109,16 @@
 </div>
 
 <script>
-/* LOGIC */
+/* GET LOCAL DATA */
+const currentCompanyId = localStorage.getItem("companyId");
+const currentCompanyName = localStorage.getItem("companyName");
+
+if(currentCompanyName) {
+    document.getElementById("welcomeUser").innerHTML = `🏢 <b>${currentCompanyName}</b>`;
+}
+
 function logout() {
-    localStorage.removeItem("token");
+    localStorage.clear();
     window.location.href = "/login.html";
 }
 
@@ -227,12 +136,24 @@ function showSection(section, event) {
     if (section === "buses") loadBuses();
 }
 
-// ... (Rest of your loadBuses, addBus, loadBookings functions remain exactly the same) ...
+// ✅ 1. Added Loading State & Defensive Array Check
 function loadBuses() {
-    fetch("/api/all-buses")
+    const list = document.getElementById("busList");
+    list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:20px;">Loading buses...</td></tr>`;
+
+    fetch(`/api/all-buses?company_id=${currentCompanyId}`)
         .then(res => res.json())
         .then(data => {
-            document.getElementById("busList").innerHTML = data.map(bus => `
+            if (!Array.isArray(data)) {
+                console.error("Invalid response", data);
+                list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--danger);">Error loading data</td></tr>`;
+                return;
+            }
+            if (data.length === 0) {
+                list.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px;">No buses yet</td></tr>`;
+                return;
+            }
+            list.innerHTML = data.map(bus => `
                 <tr>
                     <td>${bus.company}</td>
                     <td>${bus.from_city} → ${bus.to_city}</td>
@@ -244,36 +165,57 @@ function loadBuses() {
 }
 
 function addBus() {
-    const data = {
-        company: document.getElementById("company").value.trim(),
+    const payload = {
+        company_id: currentCompanyId,
+        company: currentCompanyName,
         from: document.getElementById("from").value.trim(),
         to: document.getElementById("to").value.trim(),
         time: document.getElementById("time").value,
         price: document.getElementById("price").value
     };
-    if (!data.company || !data.from || !data.to) return alert("Fill all fields");
+
+    if (!payload.from || !payload.to || !payload.price) return alert("Fill all fields");
 
     fetch("/api/add-bus", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload)
     }).then(() => {
         loadBuses();
         document.querySelectorAll(".admin-form input").forEach(i => i.value = "");
     });
 }
 
+// ✅ 1. Added Loading State & Defensive Array Check
 function loadBookings() {
-    fetch("/api/bookings").then(res => res.json()).then(data => {
-        document.getElementById("bookingList").innerHTML = data.map(b => `
-            <tr><td>#${b.id}</td><td>${b.name}</td><td>${b.phone}</td><td>${b.bus_id}</td></tr>
-        `).join("");
-    });
+    const list = document.getElementById("bookingList");
+    list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:20px;">Loading bookings...</td></tr>`;
+
+    fetch(`/api/bookings?company_id=${currentCompanyId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (!Array.isArray(data)) {
+                console.error("Invalid response", data);
+                list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--danger);">Error loading data</td></tr>`;
+                return;
+            }
+            if (data.length === 0) {
+                list.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px;">No bookings yet</td></tr>`;
+                return;
+            }
+            list.innerHTML = data.map(b => `
+                <tr><td>#${b.id}</td><td>${b.name}</td><td>${b.phone}</td><td>${b.bus_id}</td></tr>
+            `).join("");
+        });
 }
 
 function loadReports() {
-    fetch("/api/all-buses").then(res => res.json()).then(b => document.getElementById("totalBuses").innerText = b.length);
-    fetch("/api/bookings").then(res => res.json()).then(b => document.getElementById("totalBookings").innerText = b.length);
+    fetch(`/api/all-buses?company_id=${currentCompanyId}`).then(res => res.json()).then(b => {
+        if(Array.isArray(b)) document.getElementById("totalBuses").innerText = b.length;
+    });
+    fetch(`/api/bookings?company_id=${currentCompanyId}`).then(res => res.json()).then(b => {
+        if(Array.isArray(b)) document.getElementById("totalBookings").innerText = b.length;
+    });
 }
 
 loadBuses();
