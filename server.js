@@ -173,31 +173,19 @@ app.get('/api/setup-companies', async (req, res) => {
     if (key !== 'admin123') return res.status(403).send("Unauthorized");
 
     try {
-        // 1. Create companies table (Matching your schema)
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS companies (
-                id SERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL
-            )
-        `);
+        // 1. Ensure companies table exists
+        await pool.query(`CREATE TABLE IF NOT EXISTS companies (id SERIAL PRIMARY KEY, name TEXT NOT NULL, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL)`);
 
-        // 2. Fix the buses table structure
-        await pool.query(`
-            ALTER TABLE buses ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)
-        `);
+        // 2. Fix BUSES table
+        await pool.query(`ALTER TABLE buses ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)`);
 
-        // 3. Insert the companies with USERNAMES (This matches your login query)
-        await pool.query(`
-            INSERT INTO companies (name, username, password) 
-            VALUES 
-            ('Ritco', 'ritco', '1234'), 
-            ('Volcano Express', 'volcano', '1234') 
-            ON CONFLICT (username) DO NOTHING
-        `);
+        // 3. FIX: Add company_id to BOOKINGS table (This is what's causing your error!)
+        await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)`);
 
-        res.send("Database structure fixed and accounts (ritco/volcano) created! ✅");
+        // 4. Insert default accounts
+        await pool.query(`INSERT INTO companies (name, username, password) VALUES ('Ritco', 'ritco', '1234'), ('Volcano Express', 'volcano', '1234') ON CONFLICT (username) DO NOTHING`);
+
+        res.send("Bookings table repaired and database is ready! ✅");
     } catch (err) {
         console.error(err);
         res.status(500).send("Error: " + err.message);
