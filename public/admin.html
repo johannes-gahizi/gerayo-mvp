@@ -4,11 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerayo Admin | Control Panel</title>
+    
+    <script>
+        const token = localStorage.getItem("token");
+        if (token !== "secure123") {
+            window.location.href = "/login.html";
+        }
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --sidebar-bg: #1e293b;
             --primary: #27ae60;
+            --danger: #ef4444;
             --bg: #f1f5f9;
             --white: #ffffff;
             --text-main: #334155;
@@ -32,12 +41,19 @@
             transition: 0.3s;
             overflow-x: hidden;
             z-index: 1000;
+            display: flex;
+            flex-direction: column;
         }
 
         .sidebar h1 {
             text-align: center;
             color: var(--primary);
             white-space: nowrap;
+            margin-bottom: 30px;
+        }
+
+        .nav-items-container {
+            flex-grow: 1;
         }
 
         .nav-item {
@@ -49,6 +65,12 @@
             white-space: nowrap;
             display: flex;
             align-items: center;
+            transition: 0.2s;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
         }
 
         .nav-item.active {
@@ -64,12 +86,36 @@
             width: 100%;
             margin-bottom: 20px;
             cursor: pointer;
-            font-size: 20px;
+            padding: 5px;
+            border-radius: 5px;
         }
 
-        /* Main */
+        /* Logout Button Styling */
+        .logout-btn {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: 0.2s;
+            margin-top: auto;
+            margin-bottom: 20px;
+        }
+
+        .logout-btn:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Main Content */
         .main-content {
-            margin-left: 260px; /* This stays consistent with sidebar width + padding */
+            margin-left: 260px;
             padding: 40px;
             width: 100%;
             transition: 0.3s;
@@ -80,19 +126,20 @@
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
 
-        /* Form */
         .admin-form {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
-            gap: 10px;
+            gap: 15px;
         }
 
         input {
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-family: inherit;
         }
 
         button.action-btn {
@@ -100,27 +147,26 @@
             color: white;
             border: none;
             padding: 10px;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
+            font-weight: 600;
         }
 
-        /* Table */
         table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 10px;
         }
 
         th, td {
             text-align: left;
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
         }
 
-        .status-badge {
-            background: #dcfce7;
-            color: #166534;
-            padding: 4px 8px;
-            border-radius: 10px;
+        th {
+            color: #64748b;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -131,36 +177,42 @@
 
     <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
 
-    <div class="nav-item active" onclick="showSection('buses', event)">
-        🚌 Manage Buses
+    <div class="nav-items-container">
+        <div class="nav-item active" onclick="showSection('buses', event)">
+            🚌 Manage Buses
+        </div>
+
+        <div class="nav-item" onclick="showSection('bookings', event)">
+            🎟 View Bookings
+        </div>
+
+        <div class="nav-item" onclick="showSection('reports', event)">
+            📊 Reports
+        </div> 
     </div>
 
-    <div class="nav-item" onclick="showSection('bookings', event)">
-        🎟 View Bookings
-    </div>
-
-    <div class="nav-item" onclick="showSection('reports', event)">
-        📊 Reports
-    </div> 
+    <button class="logout-btn" onclick="logout()">
+        🚪 Sign Out
+    </button>
 </div>
 
 <div class="main-content" id="mainContent">
 
     <div id="busesSection">
         <div class="card">
-            <h2>Add Bus</h2>
+            <h2>Add New Bus</h2>
             <div class="admin-form">
-                <input id="company" placeholder="Company">
-                <input id="from" placeholder="From">
-                <input id="to" placeholder="To">
+                <input id="company" placeholder="Company Name">
+                <input id="from" placeholder="Origin City">
+                <input id="to" placeholder="Destination City">
                 <input id="time" type="time">
-                <input id="price" type="number" placeholder="Price">
-                <button class="action-btn" onclick="addBus()">Add Bus</button>
+                <input id="price" type="number" placeholder="Price (RWF)">
+                <button class="action-btn" onclick="addBus()">Save Bus</button>
             </div>
         </div>
 
         <div class="card">
-            <h2>Bus List</h2>
+            <h2>Active Bus Routes</h2>
             <table>
                 <thead>
                     <tr>
@@ -177,14 +229,14 @@
 
     <div id="bookingsSection" style="display:none;">
         <div class="card">
-            <h2>Bookings</h2>
+            <h2>Customer Bookings</h2>
             <table>
                 <thead>
                     <tr>
                         <th>ID</th>
                         <th>Name</th>
                         <th>Phone</th>
-                        <th>Bus</th>
+                        <th>Bus ID</th>
                     </tr>
                 </thead>
                 <tbody id="bookingList"></tbody>
@@ -194,7 +246,7 @@
 
     <div id="reportsSection" style="display:none;">
         <div class="card">
-            <h2>Reports</h2>
+            <h2>System Reports</h2>
             <p>Total buses: <span id="totalBuses" style="font-weight: bold; color: var(--primary);">0</span></p>
             <p>Total bookings: <span id="totalBookings" style="font-weight: bold; color: var(--primary);">0</span></p>
         </div>
@@ -203,6 +255,12 @@
 </div>
 
 <script>
+/* AUTH LOGIC */
+function logout() {
+    localStorage.removeItem("token");
+    window.location.href = "/login.html";
+}
+
 /* SIDEBAR TOGGLE */
 function toggleSidebar() {
     const sidebar = document.getElementById("sidebar");
@@ -219,24 +277,19 @@ function toggleSidebar() {
 
 /* NAVIGATION */
 function showSection(section, event) {
-    // Hide all sections
     document.getElementById("busesSection").style.display = "none";
     document.getElementById("bookingsSection").style.display = "none";
     document.getElementById("reportsSection").style.display = "none";
 
-    // Show selected section
     document.getElementById(section + "Section").style.display = "block";
 
-    // Update nav active state
     document.querySelectorAll(".nav-item").forEach(item =>
         item.classList.remove("active")
     );
     
-    // Check if event.target is the div or a child (like the emoji)
     const target = event.currentTarget || event.target;
     target.classList.add("active");
 
-    // Load data based on section
     if (section === "bookings") loadBookings();
     if (section === "reports") loadReports();
     if (section === "buses") loadBuses();
@@ -268,7 +321,7 @@ function addBus() {
     };
 
     if (!data.company || !data.from || !data.to) {
-        alert("Fill all fields");
+        alert("Please fill all fields");
         return;
     }
 
@@ -280,7 +333,7 @@ function addBus() {
     .then(res => res.json())
     .then(() => {
         loadBuses();
-        document.querySelectorAll("input").forEach(i => i.value = "");
+        document.querySelectorAll(".admin-form input").forEach(i => i.value = "");
     });
 }
 
@@ -293,7 +346,7 @@ function loadBuses() {
                 data.map(bus => `
                     <tr>
                         <td>${bus.company}</td>
-                        <td>${bus.from} → ${bus.to}</td>
+                        <td>${bus.from_city} → ${bus.to_city}</td>
                         <td>${bus.time}</td>
                         <td>${bus.price} RWF</td>
                     </tr>
@@ -314,7 +367,7 @@ function loadBookings() {
                             <td>#${b.id}</td>
                             <td>${b.name}</td>
                             <td>${b.phone}</td>
-                            <td>${b.busId}</td>
+                            <td>${b.bus_id}</td>
                         </tr>
                     `).join("");
         });

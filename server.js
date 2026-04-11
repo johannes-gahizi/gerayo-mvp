@@ -44,6 +44,25 @@ async function createTables() {
 }
 createTables();
 
+// --- AUTHENTICATION API ---
+
+// ✅ Admin Login
+app.post("/api/login", (req, res) => {
+  const { username, password } = req.body;
+
+  // Simple hardcoded admin
+  if (username === "admin" && password === "1234") {
+    res.json({
+      success: true,
+      token: "secure123" // simple token
+    });
+  } else {
+    res.json({ success: false });
+  }
+});
+
+// --- BUS & BOOKING APIS ---
+
 // ✅ Search buses
 app.get("/api/buses", async (req, res) => {
   const { from, to } = req.query;
