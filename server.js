@@ -168,21 +168,40 @@ app.get('/api/bookings', async (req, res) => {
 
 // --- SECURE SETUP ROUTE ---
 // To use this, visit: /api/setup-companies?key=admin123
-app.get("/api/setup-companies", async (req, res) => {
+app.get('/api/setup-companies', async (req, res) => {
     const { key } = req.query;
-    if (key !== 'admin123') return res.status(403).send("Unauthorized Access");
+    if (key !== 'admin123') return res.status(403).send("Unauthorized");
 
     try {
+        // 1. Create companies table (Matching your schema)
         await pool.query(`
-            INSERT INTO companies (name, username, password)
-            VALUES ('Ritco', 'ritco', '1234'), ('Volcano Express', 'volcano', '1234')
-            ON CONFLICT (username) DO NOTHING;
+            CREATE TABLE IF NOT EXISTS companies (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL
+            )
         `);
-        res.send("Companies initialized ✅. Note: For security, you should delete this route before launching.");
+
+        // 2. Fix the buses table structure
+        await pool.query(`
+            ALTER TABLE buses ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)
+        `);
+
+        // 3. Insert the companies with USERNAMES (This matches your login query)
+        await pool.query(`
+            INSERT INTO companies (name, username, password) 
+            VALUES 
+            ('Ritco', 'ritco', '1234'), 
+            ('Volcano Express', 'volcano', '1234') 
+            ON CONFLICT (username) DO NOTHING
+        `);
+
+        res.send("Database structure fixed and accounts (ritco/volcano) created! ✅");
     } catch (err) {
-        res.status(500).send("Error adding companies");
+        console.error(err);
+        res.status(500).send("Error: " + err.message);
     }
 });
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
