@@ -19,6 +19,7 @@
             --sidebar-bg: #1e293b;
             --primary: #27ae60;
             --danger: #ef4444;
+            --warning: #f59e0b;
             --bg: #f1f5f9;
             --white: #ffffff;
             --text-main: #334155;
@@ -40,6 +41,17 @@
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; }
         th { color: #64748b; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.025em; }
+        
+        /* Status Badges */
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .status-paid { background: #dcfce7; color: #166534; }
+        .status-pending { background: #fef3c7; color: #92400e; }
     </style>
 </head>
 <body>
@@ -92,7 +104,13 @@
             <h2>Customer Bookings</h2>
             <table>
                 <thead>
-                    <tr><th>ID</th><th>Name</th><th>Phone</th><th>Bus ID</th></tr>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Bus ID</th>
+                        <th>Status</th>
+                    </tr>
                 </thead>
                 <tbody id="bookingList"></tbody>
             </table>
@@ -136,7 +154,6 @@ function showSection(section, event) {
     if (section === "buses") loadBuses();
 }
 
-// ✅ 1. Added Loading State & Defensive Array Check
 function loadBuses() {
     const list = document.getElementById("busList");
     list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:20px;">Loading buses...</td></tr>`;
@@ -145,7 +162,6 @@ function loadBuses() {
         .then(res => res.json())
         .then(data => {
             if (!Array.isArray(data)) {
-                console.error("Invalid response", data);
                 list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--danger);">Error loading data</td></tr>`;
                 return;
             }
@@ -186,26 +202,36 @@ function addBus() {
     });
 }
 
-// ✅ 1. Added Loading State & Defensive Array Check
 function loadBookings() {
     const list = document.getElementById("bookingList");
-    list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:20px;">Loading bookings...</td></tr>`;
+    // ✅ Updated colspan to 5 to match new header count
+    list.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:20px;">Loading bookings...</td></tr>`;
 
     fetch(`/api/bookings?company_id=${currentCompanyId}`)
         .then(res => res.json())
         .then(data => {
             if (!Array.isArray(data)) {
-                console.error("Invalid response", data);
-                list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--danger);">Error loading data</td></tr>`;
+                list.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">Error loading data</td></tr>`;
                 return;
             }
             if (data.length === 0) {
-                list.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px;">No bookings yet</td></tr>`;
+                list.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px;">No bookings yet</td></tr>`;
                 return;
             }
-            list.innerHTML = data.map(b => `
-                <tr><td>#${b.id}</td><td>${b.name}</td><td>${b.phone}</td><td>${b.bus_id}</td></tr>
-            `).join("");
+            list.innerHTML = data.map(b => {
+                // ✅ Logic to style the status badge
+                const statusClass = b.status === 'PAID' ? 'status-paid' : 'status-pending';
+                
+                return `
+                    <tr>
+                        <td>#${b.id}</td>
+                        <td>${b.name}</td>
+                        <td>${b.phone}</td>
+                        <td>${b.bus_id}</td>
+                        <td><span class="status-badge ${statusClass}">${b.status}</span></td>
+                    </tr>
+                `;
+            }).join("");
         });
 }
 
