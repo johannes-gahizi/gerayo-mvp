@@ -14,9 +14,11 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// ✅ Refactored Tables
+// ✅ Refactored Tables (Auto-run on start)
 async function createTables() {
   try {
+    // Companies Table - NOTE: Password is plain text for MVP. 
+    // TODO: Implement bcrypt hashing for production.
     await pool.query(`
       CREATE TABLE IF NOT EXISTS companies (
         id SERIAL PRIMARY KEY,
@@ -26,6 +28,7 @@ async function createTables() {
       );
     `);
 
+    // Buses Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS buses (
         id SERIAL PRIMARY KEY,
@@ -38,6 +41,7 @@ async function createTables() {
       );
     `);
 
+    // Bookings Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS bookings (
         id SERIAL PRIMARY KEY,
@@ -50,14 +54,14 @@ async function createTables() {
 
     console.log("Tables ready ✅");
   } catch (err) {
-    console.error("Error creating tables:", err);
+    console.error("Database Setup Error:", err);
   }
 }
 createTables();
 
 // --- AUTHENTICATION APIS ---
 
-// ✅ New Company Registration
+// Registration
 app.post("/api/register", async (req, res) => {
   const { name, username, password } = req.body;
   try {
@@ -71,7 +75,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// ✅ UPDATED Login with Error Message
+// ✅ UPDATED LOGIN: Better UX with "Invalid credentials" message
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -80,18 +84,18 @@ app.post("/api/login", async (req, res) => {
       [username, password]
     );
 
+    // ✅ FIX: Clear message for frontend display
     if (result.rows.length === 0) {
-      // ✅ FIX: Added clear error message for the frontend
       return res.json({ 
         success: false, 
-        message: "Invalid username or password" 
+        message: "Invalid credentials" 
       });
     }
 
     const company = result.rows[0];
     res.json({
       success: true,
-      token: company.id,
+      token: company.id, 
       companyName: company.name
     });
   } catch (err) {
@@ -102,6 +106,7 @@ app.post("/api/login", async (req, res) => {
 
 // --- BUS & BOOKING APIS ---
 
+// Public Search
 app.get("/api/buses", async (req, res) => {
   const { from, to } = req.query;
   try {
@@ -115,6 +120,7 @@ app.get("/api/buses", async (req, res) => {
   }
 });
 
+// Add Bus
 app.post("/api/add-bus", async (req, res) => {
   const { company_id, company, from, to, time, price } = req.body;
   try {
@@ -128,6 +134,7 @@ app.post("/api/add-bus", async (req, res) => {
   }
 });
 
+// Get Admin Buses
 app.get("/api/all-buses", async (req, res) => {
   const { company_id } = req.query;
   try {
@@ -141,6 +148,7 @@ app.get("/api/all-buses", async (req, res) => {
   }
 });
 
+// Public Booking
 app.post("/api/book", async (req, res) => {
   const { company_id, name, phone, busId } = req.body;
   try {
@@ -154,6 +162,7 @@ app.post("/api/book", async (req, res) => {
   }
 });
 
+// Get Admin Bookings
 app.get("/api/bookings", async (req, res) => {
   const { company_id } = req.query;
   try {
