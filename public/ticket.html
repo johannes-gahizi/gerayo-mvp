@@ -22,7 +22,6 @@
             justify-content: center;
         }
 
-        /* The Ticket Shape */
         .ticket {
             background: var(--white);
             width: 100%;
@@ -33,7 +32,6 @@
             position: relative;
         }
 
-        /* Top Branding Section */
         .ticket-header {
             background-color: var(--primary);
             color: white;
@@ -43,12 +41,12 @@
 
         .ticket-header h1 {
             margin: 0;
-            font-size: 20px;
+            font-size: 18px;
             letter-spacing: 2px;
             font-weight: 800;
+            text-transform: uppercase;
         }
 
-        /* Ticket Content */
         .ticket-body {
             padding: 25px;
         }
@@ -75,7 +73,6 @@
             color: var(--dark);
         }
 
-        /* Perforated Divider Effect */
         .divider {
             position: relative;
             height: 20px;
@@ -96,7 +93,6 @@
         .divider::before { left: -30px; }
         .divider::after { right: -30px; }
 
-        /* QR Code Section */
         .qr-section {
             text-align: center;
             padding: 20px;
@@ -131,7 +127,6 @@
             margin-top: 15px;
         }
 
-        /* Print Button */
         .no-print {
             margin-top: 20px;
             background: none;
@@ -155,43 +150,43 @@
 
 <div class="ticket">
     <div class="ticket-header">
-        <h1>GERAYO TICKET</h1>
+        <h1 id="company-name">GERAYO TICKET</h1>
     </div>
 
     <div class="ticket-body">
         <div class="info-row">
             <div>
                 <span class="label">Passenger</span>
-                <span class="value" id="passenger-name">John Doe</span>
+                <span class="value" id="passenger-name">Loading...</span>
             </div>
             <div style="text-align: right;">
                 <span class="label">Date</span>
-                <span class="value">08 April 2026</span>
+                <span class="value" id="ticket-date">...</span>
             </div>
         </div>
 
         <div class="info-row">
             <div>
                 <span class="label">From</span>
-                <span class="value">Kigali</span>
+                <span class="value" id="from-city">...</span>
             </div>
             <div style="text-align: center; color: var(--primary); padding-top: 15px;">
                 →
             </div>
             <div style="text-align: right;">
                 <span class="label">To</span>
-                <span class="value">Huye</span>
+                <span class="value" id="to-city">...</span>
             </div>
         </div>
 
         <div class="info-row">
             <div>
                 <span class="label">Departure Time</span>
-                <span class="value">08:00 AM</span>
+                <span class="value" id="departure-time">...</span>
             </div>
             <div style="text-align: right;">
                 <span class="label">Seat</span>
-                <span class="value">Unassigned</span>
+                <span class="value" id="seat-number">Auto</span>
             </div>
         </div>
     </div>
@@ -200,7 +195,8 @@
 
     <div class="qr-section">
         <div class="qr-placeholder">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=GERAYO-TICKET" alt="QR Code" style="width: 100%;">
+            <img id="qr-code-img" src="" alt="QR Code" style="width: 100%; display: none;">
+            <div id="qr-loading">Generating QR...</div>
         </div>
         <span class="label">Booking Reference</span>
         <span class="booking-id" id="display-id">REF-0000</span>
@@ -215,7 +211,40 @@
     const id = params.get("id");
 
     if (id) {
-        document.getElementById("display-id").innerText = id.toUpperCase();
+        // Fetch real data from the server using the Booking ID
+        fetch(`/api/ticket/${id}`)
+            .then(res => {
+                if (!res.ok) throw new Error("Ticket not found");
+                return res.json();
+            })
+            .then(data => {
+                // Update UI with real data
+                document.getElementById("passenger-name").innerText = data.passenger_name;
+                document.getElementById("company-name").innerText = data.company_name;
+                document.getElementById("from-city").innerText = data.from_city;
+                document.getElementById("to-city").innerText = data.to_city;
+                document.getElementById("departure-time").innerText = data.time;
+                document.getElementById("display-id").innerText = "GRY-" + data.booking_id;
+                
+                // Set a current date (since we don't store travel date yet)
+                const today = new Date().toLocaleDateString('en-GB', {
+                    day: 'numeric', month: 'long', year: 'numeric'
+                });
+                document.getElementById("ticket-date").innerText = today;
+
+                // Update QR Code with real ticket data
+                const qrData = `GERAYO|ID:${data.booking_id}|NAME:${data.passenger_name}|ROUTE:${data.from_city}-${data.to_city}`;
+                const qrImg = document.getElementById("qr-code-img");
+                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}`;
+                qrImg.style.display = "block";
+                document.getElementById("qr-loading").style.display = "none";
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById("passenger-name").innerText = "Error loading ticket";
+            });
+    } else {
+        document.getElementById("passenger-name").innerText = "No Ticket ID provided";
     }
 </script>
 
