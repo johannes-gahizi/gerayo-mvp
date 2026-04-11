@@ -21,6 +21,7 @@
             --bg: #f1f5f9;
             --white: #ffffff;
             --text-main: #334155;
+            --topbar-height: 60px;
         }
 
         body {
@@ -38,111 +39,93 @@
             padding: 20px;
             position: fixed;
             height: 100vh;
-            transition: 0.3s;
-            overflow-x: hidden;
             z-index: 1000;
-            display: flex;
-            flex-direction: column;
         }
 
         .sidebar h1 {
             text-align: center;
             color: var(--primary);
-            white-space: nowrap;
             margin-bottom: 30px;
-        }
-
-        .nav-items-container {
-            flex-grow: 1;
+            font-size: 1.5rem;
         }
 
         .nav-item {
             padding: 12px;
-            margin: 10px 0;
+            margin: 8px 0;
             border-radius: 8px;
             cursor: pointer;
             color: #94a3b8;
-            white-space: nowrap;
             display: flex;
             align-items: center;
             transition: 0.2s;
         }
 
-        .nav-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            color: white;
+        .nav-item:hover { background: rgba(255, 255, 255, 0.05); color: white; }
+        .nav-item.active { background: rgba(39,174,96,0.1); color: var(--primary); font-weight: 600; }
+
+        /* Top Navigation Bar */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 240px; /* Offset by sidebar width */
+            height: var(--topbar-height);
+            background: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end; /* Pushes content to the right */
+            padding: 0 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            z-index: 900;
         }
 
-        .nav-item.active {
-            background: rgba(39,174,96,0.1);
-            color: var(--primary);
-            font-weight: bold;
-        }
-
-        .toggle-btn {
-            background: transparent;
-            color: white;
-            border: 1px solid #475569;
-            width: 100%;
-            margin-bottom: 20px;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 5px;
-        }
-
-        /* Logout Button Styling */
         .logout-btn {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-            border: 1px solid var(--danger);
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: 0.2s;
-            margin-top: auto;
-            margin-bottom: 20px;
-        }
-
-        .logout-btn:hover {
             background: var(--danger);
             color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.2s;
         }
 
-        /* Main Content */
+        .logout-btn:hover { opacity: 0.9; }
+
+        /* Main Content Area */
         .main-content {
-            margin-left: 260px;
-            padding: 40px;
+            margin-left: 240px;
+            margin-top: var(--topbar-height); /* Offset by topbar height */
+            padding: 30px;
             width: 100%;
-            transition: 0.3s;
         }
 
         .card {
             background: white;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 25px;
+            border-radius: 12px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .admin-form {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
         }
 
         input {
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #cbd5e1;
             border-radius: 6px;
             font-family: inherit;
         }
 
-        button.action-btn {
+        .action-btn {
             background: var(--primary);
             color: white;
             border: none;
@@ -152,62 +135,37 @@
             font-weight: 600;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th, td {
-            text-align: left;
-            padding: 12px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        th {
-            color: #64748b;
-            font-weight: 600;
-        }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        th { color: #64748b; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.025em; }
     </style>
 </head>
 <body>
 
-<div class="sidebar" id="sidebar">
+<div class="sidebar">
     <h1>GERAYO</h1>
+    <div class="nav-item active" onclick="showSection('buses', event)">🚌 Manage Buses</div>
+    <div class="nav-item" onclick="showSection('bookings', event)">🎟 View Bookings</div>
+    <div class="nav-item" onclick="showSection('reports', event)">📊 Reports</div>
+</div>
 
-    <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
-
-    <div class="nav-items-container">
-        <div class="nav-item active" onclick="showSection('buses', event)">
-            🚌 Manage Buses
-        </div>
-
-        <div class="nav-item" onclick="showSection('bookings', event)">
-            🎟 View Bookings
-        </div>
-
-        <div class="nav-item" onclick="showSection('reports', event)">
-            📊 Reports
-        </div> 
-    </div>
-
+<div class="top-bar">
     <button class="logout-btn" onclick="logout()">
         🚪 Sign Out
     </button>
 </div>
 
-<div class="main-content" id="mainContent">
-
+<div class="main-content">
     <div id="busesSection">
         <div class="card">
             <h2>Add New Bus</h2>
             <div class="admin-form">
                 <input id="company" placeholder="Company Name">
-                <input id="from" placeholder="Origin City">
-                <input id="to" placeholder="Destination City">
+                <input id="from" placeholder="Origin">
+                <input id="to" placeholder="Destination">
                 <input id="time" type="time">
                 <input id="price" type="number" placeholder="Price (RWF)">
-                <button class="action-btn" onclick="addBus()">Save Bus</button>
+                <button class="action-btn" onclick="addBus()">Save Route</button>
             </div>
         </div>
 
@@ -232,12 +190,7 @@
             <h2>Customer Bookings</h2>
             <table>
                 <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Phone</th>
-                        <th>Bus ID</th>
-                    </tr>
+                    <tr><th>ID</th><th>Name</th><th>Phone</th><th>Bus ID</th></tr>
                 </thead>
                 <tbody id="bookingList"></tbody>
             </table>
@@ -247,70 +200,49 @@
     <div id="reportsSection" style="display:none;">
         <div class="card">
             <h2>System Reports</h2>
-            <p>Total buses: <span id="totalBuses" style="font-weight: bold; color: var(--primary);">0</span></p>
-            <p>Total bookings: <span id="totalBookings" style="font-weight: bold; color: var(--primary);">0</span></p>
+            <p>Total buses: <span id="totalBuses" style="font-weight:bold; color:var(--primary);">0</span></p>
+            <p>Total bookings: <span id="totalBookings" style="font-weight:bold; color:var(--primary);">0</span></p>
         </div>
     </div>
-
 </div>
 
 <script>
-/* AUTH LOGIC */
+/* LOGIC */
 function logout() {
     localStorage.removeItem("token");
     window.location.href = "/login.html";
 }
 
-/* SIDEBAR TOGGLE */
-function toggleSidebar() {
-    const sidebar = document.getElementById("sidebar");
-    const mainContent = document.getElementById("mainContent");
-
-    if (sidebar.style.width === "60px") {
-        sidebar.style.width = "240px";
-        mainContent.style.marginLeft = "260px";
-    } else {
-        sidebar.style.width = "60px";
-        mainContent.style.marginLeft = "80px";
-    }
-}
-
-/* NAVIGATION */
 function showSection(section, event) {
     document.getElementById("busesSection").style.display = "none";
     document.getElementById("bookingsSection").style.display = "none";
     document.getElementById("reportsSection").style.display = "none";
-
     document.getElementById(section + "Section").style.display = "block";
 
-    document.querySelectorAll(".nav-item").forEach(item =>
-        item.classList.remove("active")
-    );
-    
-    const target = event.currentTarget || event.target;
-    target.classList.add("active");
+    document.querySelectorAll(".nav-item").forEach(item => item.classList.remove("active"));
+    event.currentTarget.classList.add("active");
 
     if (section === "bookings") loadBookings();
     if (section === "reports") loadReports();
     if (section === "buses") loadBuses();
 }
 
-/* REPORTS LOGIC */
-function loadReports() {
+// ... (Rest of your loadBuses, addBus, loadBookings functions remain exactly the same) ...
+function loadBuses() {
     fetch("/api/all-buses")
         .then(res => res.json())
-        .then(buses => {
-            document.getElementById("totalBuses").innerText = buses.length;
-        });
-
-    fetch("/api/bookings")
-        .then(res => res.json())
-        .then(bookings => {
-            document.getElementById("totalBookings").innerText = bookings.length;
+        .then(data => {
+            document.getElementById("busList").innerHTML = data.map(bus => `
+                <tr>
+                    <td>${bus.company}</td>
+                    <td>${bus.from_city} → ${bus.to_city}</td>
+                    <td>${bus.time}</td>
+                    <td>${bus.price} RWF</td>
+                </tr>
+            `).join("");
         });
 }
 
-/* ADD BUS */
 function addBus() {
     const data = {
         company: document.getElementById("company").value.trim(),
@@ -319,63 +251,32 @@ function addBus() {
         time: document.getElementById("time").value,
         price: document.getElementById("price").value
     };
-
-    if (!data.company || !data.from || !data.to) {
-        alert("Please fill all fields");
-        return;
-    }
+    if (!data.company || !data.from || !data.to) return alert("Fill all fields");
 
     fetch("/api/add-bus", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
-    })
-    .then(res => res.json())
-    .then(() => {
+    }).then(() => {
         loadBuses();
         document.querySelectorAll(".admin-form input").forEach(i => i.value = "");
     });
 }
 
-/* LOAD BUSES */
-function loadBuses() {
-    fetch("/api/all-buses")
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById("busList").innerHTML =
-                data.map(bus => `
-                    <tr>
-                        <td>${bus.company}</td>
-                        <td>${bus.from_city} → ${bus.to_city}</td>
-                        <td>${bus.time}</td>
-                        <td>${bus.price} RWF</td>
-                    </tr>
-                `).join("");
-        });
-}
-
-/* LOAD BOOKINGS */
 function loadBookings() {
-    fetch("/api/bookings")
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById("bookingList").innerHTML =
-                data.length === 0
-                    ? "<tr><td colspan='4'>No bookings yet</td></tr>"
-                    : data.map(b => `
-                        <tr>
-                            <td>#${b.id}</td>
-                            <td>${b.name}</td>
-                            <td>${b.phone}</td>
-                            <td>${b.bus_id}</td>
-                        </tr>
-                    `).join("");
-        });
+    fetch("/api/bookings").then(res => res.json()).then(data => {
+        document.getElementById("bookingList").innerHTML = data.map(b => `
+            <tr><td>#${b.id}</td><td>${b.name}</td><td>${b.phone}</td><td>${b.bus_id}</td></tr>
+        `).join("");
+    });
 }
 
-/* INITIAL LOAD */
+function loadReports() {
+    fetch("/api/all-buses").then(res => res.json()).then(b => document.getElementById("totalBuses").innerText = b.length);
+    fetch("/api/bookings").then(res => res.json()).then(b => document.getElementById("totalBookings").innerText = b.length);
+}
+
 loadBuses();
 </script>
-
 </body>
 </html>
