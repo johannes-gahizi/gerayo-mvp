@@ -156,8 +156,16 @@ function loadBuses() {
     const list = document.getElementById("busList");
     list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:20px;">Loading buses...</td></tr>`;
 
+    if (!currentCompanyId) {
+        window.location.href = "/login.html";
+        return;
+    }
+
     fetch(`/api/all-buses?company_id=${currentCompanyId}`)
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error("Server error");
+            return res.json();
+        })
         .then(data => {
             if (!Array.isArray(data)) {
                 list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--danger);">Error loading data</td></tr>`;
@@ -169,17 +177,20 @@ function loadBuses() {
             }
             list.innerHTML = data.map(bus => `
                 <tr>
-                    <td>${bus.company}</td>
+                    <td>${currentCompanyName}</td>
                     <td>${bus.from_city} → ${bus.to_city}</td>
                     <td>${bus.time}</td>
                     <td>${bus.price} RWF</td>
                 </tr>
             `).join("");
+        })
+        .catch(err => {
+            console.error("Fetch error:", err);
+            list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--danger);">Connection Error</td></tr>`;
         });
 }
 
 function addBus() {
-    // 🛡️ 1. Prevent adding orphaned data if session is lost
     if (!currentCompanyId || !currentCompanyName) {
         alert("Session expired. Please login again.");
         logout();
@@ -187,15 +198,13 @@ function addBus() {
     }
 
     const payload = {
-        company_id: currentCompanyId,
-        company: currentCompanyName,
+        company_id: parseInt(currentCompanyId),
         from: document.getElementById("from").value.trim(),
         to: document.getElementById("to").value.trim(),
         time: document.getElementById("time").value,
-        price: document.getElementById("price").value
+        price: parseInt(document.getElementById("price").value)
     };
 
-    // 🛡️ 2. Stricter validation including Time
     if (!payload.from || !payload.to || !payload.price || !payload.time) {
         return alert("Please fill in all fields (Origin, Destination, Time, and Price)");
     }
@@ -204,10 +213,16 @@ function addBus() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
-    }).then(() => {
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Save failed");
+        return res.json();
+    })
+    .then(() => {
         loadBuses();
         document.querySelectorAll(".admin-form input").forEach(i => i.value = "");
-    });
+    })
+    .catch(err => alert("Error saving route: " + err.message));
 }
 
 function loadBookings() {
@@ -243,14 +258,19 @@ function loadBookings() {
 }
 
 function loadReports() {
-    fetch(`/api/all-buses?company_id=${currentCompanyId}`).then(res => res.json()).then(b => {
-        if(Array.isArray(b)) document.getElementById("totalBuses").innerText = b.length;
-    });
-    fetch(`/api/bookings?company_id=${currentCompanyId}`).then(res => res.json()).then(b => {
-        if(Array.isArray(b)) document.getElementById("totalBookings").innerText = b.length;
-    });
+    fetch(`/api/all-buses?company_id=${currentCompanyId}`)
+        .then(res => res.json())
+        .then(b => {
+            if(Array.isArray(b)) document.getElementById("totalBuses").innerText = b.length;
+        });
+    fetch(`/api/bookings?company_id=${currentCompanyId}`)
+        .then(res => res.json())
+        .then(b => {
+            if(Array.isArray(b)) document.getElementById("totalBookings").innerText = b.length;
+        });
 }
 
+// Initial load
 loadBuses();
 </script>
 </body>
