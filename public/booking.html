@@ -196,8 +196,8 @@
             return res.json();
         })
         .then(data => {
-            // Redirect to ticket page (using bookingId which matches your server response)
-          window.location.href = `payment.html?bookingId=${data.bookingId}&company_id=${selectedBus.company_id}`;  
+            // Use the 'company_id' variable you defined at the top!
+            window.location.href = `payment.html?bookingId=${data.bookingId}&company_id=${company_id}`;
         })
         .catch(err => {
             console.error("Booking Error:", err);
