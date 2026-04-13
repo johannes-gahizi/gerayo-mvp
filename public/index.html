@@ -25,14 +25,15 @@
             align-items: center;
             z-index: 1000;
             box-sizing: border-box;
-            transition: background 0.3s;
+            transition: all 0.3s ease;
         }
         
         .logo { color: white; font-weight: 800; font-size: 1.5rem; text-decoration: none; letter-spacing: -1px; }
         .logo span { color: var(--primary); }
 
         .nav-links a { color: white; text-decoration: none; font-weight: 600; font-size: 0.9rem; margin-left: 20px; }
-        .nav-links .admin-link { border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px; border-radius: 8px; }
+        .nav-links .admin-link { border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px; border-radius: 8px; transition: 0.2s; }
+        .nav-links .admin-link:hover { background: rgba(255,255,255,0.1); }
 
         /* Hero Section */
         .hero {
@@ -89,7 +90,6 @@
         }
         
         .feature-card:hover { transform: translateY(-10px); }
-        
         .feature-icon { font-size: 2rem; margin-bottom: 20px; display: block; }
         .feature-card h3 { font-size: 1.25rem; margin-bottom: 12px; font-weight: 700; }
         .feature-card p { color: var(--text-light); line-height: 1.5; margin: 0; }
@@ -103,7 +103,7 @@
 
         @media (max-width: 768px) {
             nav { padding: 20px; }
-            .nav-links { display: none; } /* Simplified for MVP mobile */
+            .nav-links { display: none; }
         }
     </style>
 </head>
@@ -112,7 +112,7 @@
     <nav id="navbar">
         <a href="#" class="logo">GE<span>RAYO</span></a>
         <div class="nav-links">
-            <a href="search.html">Find Bus</a>
+            <a href="user-login.html">Find Bus</a>
             <a href="company-login.html" class="admin-link">Transport Partner</a>
         </div>
     </nav>
@@ -120,7 +120,8 @@
     <section class="hero">
         <h1>Travel Rwanda Better.</h1>
         <p>Book tickets from Ritco, Volcano, Horizon, and more—all in one place. Your journey starts with a simple click.</p>
-        <a href="search.html" class="cta-btn">Book Your Seat Now</a>
+        
+        <a href="user-login.html" class="cta-btn">Book Your Seat Now</a>
     </section>
 
     <section class="features">
@@ -146,7 +147,7 @@
     </footer>
 
     <script>
-        // Navbar transparency effect
+        // 1. Handle Navbar background on scroll
         window.onscroll = function() {
             const nav = document.getElementById('navbar');
             if (window.scrollY > 50) {
@@ -155,6 +156,14 @@
             } else {
                 nav.style.background = 'transparent';
                 nav.style.padding = '20px 50px';
+            }
+        };
+
+        // 2. Auth Guard: Redirect if already logged in
+        window.onload = function() {
+            const token = localStorage.getItem("userToken");
+            if (token) {
+                window.location.href = "search.html";
             }
         };
     </script>
