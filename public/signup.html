@@ -1,47 +1,212 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    </head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerayo | Join the Journey</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #27ae60;
+            --primary-hover: #219150;
+            --dark: #0f172a;
+            --bg: #f8fafc;
+            --white: #ffffff;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .auth-card {
+            background: var(--white);
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+        }
+
+        h2 {
+            margin: 0 0 8px 0;
+            color: var(--dark);
+            font-size: 1.75rem;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        p {
+            color: #64748b;
+            text-align: center;
+            font-size: 0.95rem;
+            margin-bottom: 32px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: all 0.2s;
+            background: #fcfcfc;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(39, 174, 96, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        .link {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
 <body>
+
     <div class="auth-card">
         <h2>Create Account</h2>
         <p>Join Gerayo to start traveling</p>
+        
         <div class="input-group">
             <label>Full Name</label>
             <input type="text" id="fullname" placeholder="Jean Doe">
         </div>
+        
         <div class="input-group">
-            <label>Email</label>
+            <label>Email Address</label>
             <input type="email" id="email" placeholder="you@example.com">
         </div>
+        
         <div class="input-group">
             <label>Password</label>
             <input type="password" id="password" placeholder="••••••••">
         </div>
-        <button class="btn" onclick="signup()">Sign Up</button>
-        <div class="link">Already have an account? <a href="login.html">Login</a></div>
+        
+        <button class="btn" id="signupBtn" onclick="signup()">Get Started</button>
+        
+        <div class="link">
+            Already have an account? <a href="login.html">Login</a>
+        </div>
     </div>
 
     <script>
         async function signup() {
-            const fullname = document.getElementById('fullname').value;
-            const email = document.getElementById('email').value;
+            const fullname = document.getElementById('fullname').value.trim();
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
+            const btn = document.getElementById('signupBtn');
 
-            const res = await fetch('/api/signup', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ fullname, email, password })
-            });
-            const data = await res.json();
-            if (data.success) {
-                localStorage.setItem("userToken", data.token);
-                localStorage.setItem("userName", data.userName);
-                window.location.href = "search.html";
-            } else {
-                alert(data.error);
+            // Basic Client-side validation
+            if (!fullname || !email || !password) {
+                alert("Please fill in all fields.");
+                return;
+            }
+
+            if (password.length < 6) {
+                alert("Password must be at least 6 characters.");
+                return;
+            }
+
+            // Visual feedback
+            btn.innerText = "Creating Account...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ fullname, email, password })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    // Critical for booking.html to work!
+                    localStorage.setItem("userToken", data.token);
+                    localStorage.setItem("userName", fullname); // Storing the name for auto-fill
+                    
+                    window.location.href = "search.html";
+                } else {
+                    alert(data.error || "Signup failed. Try again.");
+                    btn.innerText = "Get Started";
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error("Signup Error:", err);
+                alert("Server connection failed.");
+                btn.innerText = "Get Started";
+                btn.disabled = false;
             }
         }
+
+        // Allow 'Enter' key submission
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') signup();
+        });
     </script>
 </body>
 </html>

@@ -3,78 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerayo - Complete Booking</title>
+    <title>Gerayo - Passenger Details</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #27ae60; --bg: #f0f2f5; --text: #2c3e50; }
+        :root { --primary: #27ae60; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         
-        .booking-card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 400px; }
-        h2 { color: var(--text); margin-top: 0; font-size: 22px; text-align: center; }
+        .booking-card { background: white; padding: 32px; border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05); width: 100%; max-width: 420px; border: 1px solid var(--border); }
+        h2 { color: var(--text); margin: 0 0 20px 0; font-size: 1.25rem; font-weight: 800; text-align: center; }
         
-        .summary-box { background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #cbd5e1; }
-        .summary-box p { margin: 5px 0; font-size: 14px; color: #64748b; }
+        /* Trip Preview Box */
+        .summary-box { background: #f1f5f9; padding: 16px; border-radius: 12px; margin-bottom: 24px; border: 1px solid var(--border); }
+        .summary-box .route { font-weight: 700; color: var(--text); font-size: 0.95rem; display: block; }
+        .summary-box .meta { font-size: 0.8rem; color: #64748b; margin-top: 4px; display: block; }
 
-        .input-group { margin-bottom: 15px; text-align: left; }
-        label { display: block; font-size: 12px; font-weight: 700; color: #7f8c8d; margin-bottom: 5px; text-transform: uppercase; }
-        input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; outline: none; box-sizing: border-box; }
-        input:focus { border-color: var(--primary); }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        input { width: 100%; padding: 14px; border: 2.3px solid var(--border); border-radius: 12px; font-size: 1rem; outline: none; box-sizing: border-box; transition: all 0.2s; }
+        input:focus { border-color: var(--primary); background: #fff; }
 
-        .confirm-btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-        .confirm-btn:hover { background: #219150; transform: translateY(-1px); }
-        .loader { display: none; text-align: center; color: var(--primary); font-weight: 600; margin-top: 10px; }
+        .confirm-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 14px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .confirm-btn:hover { background: #219150; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(39, 174, 96, 0.3); }
+        
+        .loader { display: none; text-align: center; color: var(--primary); font-weight: 700; margin-top: 15px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
 <div class="booking-card">
-    <h2>Passenger Details</h2>
+    <h2>Passenger Info</h2>
     
     <div id="bus-summary" class="summary-box">
-        <p>Loading trip details...</p>
+        <span class="route" id="display-route">Fetching trip details...</span>
+        <span class="meta" id="display-time">Please wait</span>
     </div>
 
     <div class="input-group">
-        <label>Full Name</label>
-        <input type="text" id="passenger-name" placeholder="e.g. Jean Doe" required>
+        <label>Your Full Name</label>
+        <input type="text" id="passenger-name" placeholder="Enter your name" required>
     </div>
 
     <div class="input-group">
-        <label>MoMo Number</label>
-        <input type="tel" id="passenger-phone" placeholder="078... or 072..." required>
+        <label>Payment Phone (MoMo)</label>
+        <input type="tel" id="passenger-phone" placeholder="078 / 079 / 072 / 073" required>
     </div>
 
-    <button class="confirm-btn" onclick="submitBooking()">Proceed to Payment</button>
-    <div id="loading" class="loader">Processing Booking...</div>
+    <button class="confirm-btn" id="submit-btn" onclick="submitBooking()">Continue to Payment</button>
+    <div id="loading" class="loader">🔄 Securing your seat...</div>
 </div>
 
 <script>
-    // Extract busId from the URL (from search.html)
     const urlParams = new URLSearchParams(window.location.search);
     const busId = urlParams.get('busId');
 
-    if (!busId) {
-        alert("No bus selected! Redirecting to search...");
-        window.location.href = 'index.html';
-    }
-
-    async function submitBooking() {
-        const name = document.getElementById('passenger-name').value;
-        const phone = document.getElementById('passenger-phone').value;
-        const btn = document.querySelector('.confirm-btn');
-        const loader = document.getElementById('loading');
-
-        if (!name || !phone) {
-            alert("Please fill in all details");
+    // Load trip preview on start
+    window.onload = async () => {
+        if (!busId) {
+            alert("Session expired. Please search for a bus again.");
+            window.location.href = 'index.html';
             return;
         }
 
-        // UX: Show loading, hide button
+        try {
+            // Adjust this API call to match your actual search endpoint if needed
+            const res = await fetch(`/api/search`); 
+            const buses = await res.json();
+            const bus = buses.find(b => b.id == busId);
+            
+            if (bus) {
+                document.getElementById('display-route').innerText = `${bus.from_city} → ${bus.to_city}`;
+                document.getElementById('display-time').innerText = `${bus.time} | ${bus.price} RWF`;
+            }
+        } catch (e) {
+            console.error("Preview failed", e);
+        }
+    };
+
+    async function submitBooking() {
+        const name = document.getElementById('passenger-name').value.trim();
+        const phone = document.getElementById('passenger-phone').value.trim();
+        const btn = document.getElementById('submit-btn');
+        const loader = document.getElementById('loading');
+
+        if (!name || !phone) {
+            alert("Please provide your name and phone number.");
+            return;
+        }
+
+        // Phone validation for Rwanda
+        if (!/^07[2389]\d{7}$/.test(phone)) {
+            alert("Please enter a valid Rwandan phone number.");
+            return;
+        }
+
         btn.style.display = 'none';
         loader.style.display = 'block';
 
         try {
-            const response = await fetch('/api/bookings', {
+            const response = await fetch('/api/book', { // Note: using /api/book to match your earlier setup
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -86,15 +112,15 @@
 
             const data = await response.json();
 
-            if (data.success) {
-                // ✅ CORRECTED FLOW: Redirect to payment.html with bookingId
+            if (response.ok) {
+                // Moving to the payment page we just polished!
                 window.location.href = `payment.html?bookingId=${data.bookingId}`;
             } else {
-                throw new Error(data.message || "Booking failed");
+                throw new Error(data.error || "Booking failed");
             }
 
         } catch (error) {
-            alert("Error: " + error.message);
+            alert("Oops! " + error.message);
             btn.style.display = 'block';
             loader.style.display = 'none';
         }

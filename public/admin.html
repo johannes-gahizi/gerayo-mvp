@@ -6,272 +6,276 @@
     <title>Gerayo Admin | Control Panel</title>
     
     <script>
+        // Use the actual filename you have in your public folder
         const companyId = localStorage.getItem("companyId");
         if (!companyId || companyId === "undefined") {
             localStorage.clear();
-            window.location.href = "/login.html";
+            window.location.href = "company-login.html"; 
         }
     </script>
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --sidebar-bg: #1e293b;
             --primary: #27ae60;
+            --primary-dark: #219150;
+            --sidebar-bg: #0f172a;
+            --bg: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
             --danger: #ef4444;
-            --warning: #f59e0b;
-            --bg: #f1f5f9;
             --white: #ffffff;
-            --text-main: #334155;
-            --topbar-height: 60px;
         }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg); margin: 0; display: flex; }
-        .sidebar { width: 240px; background: var(--sidebar-bg); color: white; padding: 20px; position: fixed; height: 100vh; z-index: 1000; }
-        .sidebar h1 { text-align: center; color: var(--primary); margin-bottom: 30px; font-size: 1.5rem; }
-        .nav-item { padding: 12px; margin: 8px 0; border-radius: 8px; cursor: pointer; color: #94a3b8; display: flex; align-items: center; transition: 0.2s; }
-        .nav-item:hover { background: rgba(255, 255, 255, 0.05); color: white; }
-        .nav-item.active { background: rgba(39,174,96,0.1); color: var(--primary); font-weight: 600; }
-        .top-bar { position: fixed; top: 0; right: 0; left: 240px; height: var(--topbar-height); background: var(--white); display: flex; align-items: center; justify-content: flex-end; padding: 0 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 900; }
-        .logout-btn { background: var(--danger); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.875rem; display: flex; align-items: center; gap: 8px; transition: opacity 0.2s; }
-        .main-content { margin-left: 240px; margin-top: var(--topbar-height); padding: 30px; width: 100%; }
-        .card { background: white; padding: 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .admin-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
-        input { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-family: inherit; }
-        .action-btn { background: var(--primary); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 600; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; }
-        th { color: #64748b; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.025em; }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-main); margin: 0; display: flex; }
+
+        /* Modern Sidebar */
+        .sidebar { width: 260px; background: var(--sidebar-bg); color: white; height: 100vh; position: fixed; padding: 24px; box-sizing: border-box; }
+        .sidebar h1 { font-size: 1.5rem; letter-spacing: -1px; color: var(--primary); margin-bottom: 40px; }
         
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
+        .nav-item { 
+            padding: 12px 16px; margin: 4px 0; border-radius: 10px; cursor: pointer; 
+            color: #94a3b8; display: flex; align-items: center; gap: 12px; transition: all 0.2s; 
         }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: var(--primary); color: white; font-weight: 600; }
+
+        /* Main Content Area */
+        .main-content { margin-left: 260px; width: calc(100% - 260px); min-height: 100vh; }
+        
+        .top-bar { 
+            height: 70px; background: var(--white); border-bottom: 1px solid #e2e8f0; 
+            display: flex; align-items: center; justify-content: space-between; padding: 0 40px; 
+        }
+
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 24px; border-radius: 16px; border: 1px solid #e2e8f0; }
+        .stat-card h3 { margin: 0; font-size: 0.875rem; color: var(--text-muted); text-transform: uppercase; }
+        .stat-card .value { font-size: 1.875rem; font-weight: 700; margin-top: 8px; color: var(--primary); }
+
+        .card { background: white; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 24px; }
+        
+        /* Advanced Form */
+        .admin-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+        input { 
+            padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; 
+            font-size: 1rem; transition: border 0.2s; 
+        }
+        input:focus { outline: none; border-color: var(--primary); }
+
+        .btn-save { 
+            background: var(--primary); color: white; border: none; padding: 12px; 
+            border-radius: 10px; font-weight: 700; cursor: pointer; align-self: flex-end; 
+        }
+        .btn-save:hover { background: var(--primary-dark); }
+
+        /* Modern Table */
+        table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+        th { text-align: left; padding: 12px 20px; color: var(--text-muted); font-size: 0.8rem; }
+        td { background: white; padding: 16px 20px; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; }
+        td:first-child { border-left: 1px solid #f1f5f9; border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+        td:last-child { border-right: 1px solid #f1f5f9; border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
         .status-paid { background: #dcfce7; color: #166534; }
-        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-pending { background: #fee2e2; color: #991b1b; }
+        
+        .delete-btn { color: var(--danger); background: none; border: none; cursor: pointer; font-weight: 600; }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
     <h1>GERAYO</h1>
-    <div class="nav-item active" onclick="showSection('buses', event)">🚌 Manage Buses</div>
-    <div class="nav-item" onclick="showSection('bookings', event)">🎟 View Bookings</div>
-    <div class="nav-item" onclick="showSection('reports', event)">📊 Reports</div>
-</div>
-
-<div class="top-bar">
-    <div id="welcomeUser" style="margin-right: 20px; color: var(--text-main); font-size: 0.9rem;"></div>
-    <button class="logout-btn" onclick="logout()">
-        🚪 Sign Out
-    </button>
+    <div class="nav-item active" onclick="showSection('dashboard', event)">📊 Dashboard</div>
+    <div class="nav-item" onclick="showSection('buses', event)">🚌 Bus Fleet</div>
+    <div class="nav-item" onclick="showSection('bookings', event)">🎟 Bookings</div>
 </div>
 
 <div class="main-content">
-    <div id="busesSection">
-        <div class="card">
-            <h2>Add New Bus</h2>
-            <div class="admin-form">
-                <input id="from" placeholder="Origin">
-                <input id="to" placeholder="Destination">
-                <input id="time" type="time">
-                <input id="price" type="number" placeholder="Price (RWF)">
-                <button class="action-btn" onclick="addBus()">Save Route</button>
+    <div class="top-bar">
+        <div id="welcomeUser" style="font-weight: 500;"></div>
+        <button onclick="logout()" style="background:none; border:none; color:var(--danger); cursor:pointer; font-weight:600;">Sign Out</button>
+    </div>
+
+    <div style="padding: 40px;">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Active Routes</h3>
+                <div class="value" id="stat-buses">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Bookings</h3>
+                <div class="value" id="stat-bookings">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Revenue (Est.)</h3>
+                <div class="value" id="stat-revenue">0 RWF</div>
             </div>
         </div>
 
-        <div class="card">
-            <h2>Active Bus Routes</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Company</th>
-                        <th>Route</th>
-                        <th>Time</th>
-                        <th>Price</th>
-                    </tr>
-                </thead>
-                <tbody id="busList"></tbody>
-            </table>
+        <div id="dashboardSection">
+            <div class="card">
+                <h2 style="margin-top:0">Create New Route</h2>
+                <div class="admin-form">
+                    <div class="input-group">
+                        <label>FROM</label>
+                        <input id="from" placeholder="e.g. Kigali">
+                    </div>
+                    <div class="input-group">
+                        <label>TO</label>
+                        <input id="to" placeholder="e.g. Musanze">
+                    </div>
+                    <div class="input-group">
+                        <label>DEPARTURE TIME</label>
+                        <input id="time" type="time">
+                    </div>
+                    <div class="input-group">
+                        <label>PRICE (RWF)</label>
+                        <input id="price" type="number">
+                    </div>
+                    <button class="btn-save" onclick="addBus()">Add Route</button>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div id="bookingsSection" style="display:none;">
-        <div class="card">
-            <h2>Customer Bookings</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Phone</th>
-                        <th>Bus ID</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="bookingList"></tbody>
-            </table>
+        <div id="busesSection" style="display:none;">
+            <div class="card">
+                <h2 style="margin-top:0">Current Fleet</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ROUTE</th>
+                            <th>TIME</th>
+                            <th>PRICE</th>
+                            <th>ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody id="busList"></tbody>
+                </table>
+            </div>
         </div>
-    </div>
 
-    <div id="reportsSection" style="display:none;">
-        <div class="card">
-            <h2>System Reports</h2>
-            <p>Total buses: <span id="totalBuses" style="font-weight:bold; color:var(--primary);">0</span></p>
-            <p>Total bookings: <span id="totalBookings" style="font-weight:bold; color:var(--primary);">0</span></p>
+        <div id="bookingsSection" style="display:none;">
+            <div class="card">
+                <h2 style="margin-top:0">Passenger Manifest</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>PASSENGER</th>
+                            <th>PHONE</th>
+                            <th>BUS ID</th>
+                            <th>STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bookingList"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-const currentCompanyId = localStorage.getItem("companyId");
-const currentCompanyName = localStorage.getItem("companyName");
+    const currentCompanyId = localStorage.getItem("companyId");
+    const currentCompanyName = localStorage.getItem("companyName");
 
-if(currentCompanyName) {
-    document.getElementById("welcomeUser").innerHTML = `🏢 <b>${currentCompanyName}</b>`;
-}
-
-function logout() {
-    localStorage.clear();
-    window.location.href = "/login.html";
-}
-
-function showSection(section, event) {
-    document.getElementById("busesSection").style.display = "none";
-    document.getElementById("bookingsSection").style.display = "none";
-    document.getElementById("reportsSection").style.display = "none";
-    document.getElementById(section + "Section").style.display = "block";
-
-    document.querySelectorAll(".nav-item").forEach(item => item.classList.remove("active"));
-    event.currentTarget.classList.add("active");
-
-    if (section === "bookings") loadBookings();
-    if (section === "reports") loadReports();
-    if (section === "buses") loadBuses();
-}
-
-function loadBuses() {
-    const list = document.getElementById("busList");
-    list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:20px;">Loading buses...</td></tr>`;
-
-    if (!currentCompanyId) {
-        window.location.href = "/login.html";
-        return;
+    if(currentCompanyName) {
+        document.getElementById("welcomeUser").innerHTML = `Logged in as <b>${currentCompanyName}</b>`;
     }
 
-    fetch(`/api/all-buses?company_id=${currentCompanyId}`)
-        .then(res => {
-            if (!res.ok) throw new Error("Server error");
-            return res.json();
-        })
-        .then(data => {
-            if (!Array.isArray(data)) {
-                list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--danger);">Error loading data</td></tr>`;
-                return;
-            }
-            if (data.length === 0) {
-                list.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px;">No buses yet</td></tr>`;
-                return;
-            }
+    function logout() {
+        localStorage.clear();
+        window.location.href = "company-login.html";
+    }
+
+    function showSection(section, event) {
+        // Hide all
+        ['dashboard', 'buses', 'bookings'].forEach(s => {
+            document.getElementById(s + 'Section').style.display = 'none';
+        });
+        // Show target
+        document.getElementById(section + 'Section').style.display = 'block';
+        
+        document.querySelectorAll(".nav-item").forEach(item => item.classList.remove("active"));
+        event.currentTarget.classList.add("active");
+
+        if(section === 'buses') loadBuses();
+        if(section === 'bookings') loadBookings();
+    }
+
+    async function loadBuses() {
+        const list = document.getElementById("busList");
+        try {
+            const res = await fetch(`/api/all-buses?company_id=${currentCompanyId}`);
+            const data = await res.json();
+            
             list.innerHTML = data.map(bus => `
                 <tr>
-                    <td>${currentCompanyName}</td>
-                    <td>${bus.from_city} → ${bus.to_city}</td>
+                    <td><b>${bus.from_city}</b> → ${bus.to_city}</td>
                     <td>${bus.time}</td>
-                    <td>${bus.price} RWF</td>
+                    <td>${Number(bus.price).toLocaleString()} RWF</td>
+                    <td><button class="delete-btn">Remove</button></td>
                 </tr>
             `).join("");
-        })
-        .catch(err => {
-            console.error("Fetch error:", err);
-            list.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--danger);">Connection Error</td></tr>`;
+            
+            document.getElementById("stat-buses").innerText = data.length;
+        } catch (e) { console.error(e); }
+    }
+
+    async function addBus() {
+        const payload = {
+            company_id: parseInt(currentCompanyId),
+            from: document.getElementById("from").value.trim(),
+            to: document.getElementById("to").value.trim(),
+            time: document.getElementById("time").value,
+            price: parseInt(document.getElementById("price").value)
+        };
+
+        if (!payload.from || !payload.to || !payload.price || !payload.time) {
+            return alert("Fill all fields");
+        }
+
+        const res = await fetch("/api/add-bus", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
         });
-}
 
-function addBus() {
-    if (!currentCompanyId || !currentCompanyName) {
-        alert("Session expired. Please login again.");
-        logout();
-        return;
+        if (res.ok) {
+            alert("Route Added!");
+            loadBuses();
+            updateStats();
+            document.querySelectorAll("input").forEach(i => i.value = "");
+        }
     }
 
-    const payload = {
-        company_id: parseInt(currentCompanyId),
-        from: document.getElementById("from").value.trim(),
-        to: document.getElementById("to").value.trim(),
-        time: document.getElementById("time").value,
-        price: parseInt(document.getElementById("price").value)
-    };
-
-    if (!payload.from || !payload.to || !payload.price || !payload.time) {
-        return alert("Please fill in all fields (Origin, Destination, Time, and Price)");
+    async function loadBookings() {
+        const list = document.getElementById("bookingList");
+        const res = await fetch(`/api/bookings?company_id=${currentCompanyId}`);
+        const data = await res.json();
+        
+        list.innerHTML = data.map(b => `
+            <tr>
+                <td><b>${b.name}</b></td>
+                <td>${b.phone}</td>
+                <td>#${b.bus_id}</td>
+                <td><span class="status-badge ${b.status === 'PAID' ? 'status-paid' : 'status-pending'}">${b.status || 'PENDING'}</span></td>
+            </tr>
+        `).join("");
+        document.getElementById("stat-bookings").innerText = data.length;
     }
 
-    fetch("/api/add-bus", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-    })
-    .then(res => {
-        if (!res.ok) throw new Error("Save failed");
-        return res.json();
-    })
-    .then(() => {
+    async function updateStats() {
+        // Run both to update dashboard numbers
         loadBuses();
-        document.querySelectorAll(".admin-form input").forEach(i => i.value = "");
-    })
-    .catch(err => alert("Error saving route: " + err.message));
-}
+        loadBookings();
+    }
 
-function loadBookings() {
-    const list = document.getElementById("bookingList");
-    list.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:20px;">Loading bookings...</td></tr>`;
-
-    fetch(`/api/bookings?company_id=${currentCompanyId}`)
-        .then(res => res.json())
-        .then(data => {
-            if (!Array.isArray(data)) {
-                list.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">Error loading data</td></tr>`;
-                return;
-            }
-            if (data.length === 0) {
-                list.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px;">No bookings yet</td></tr>`;
-                return;
-            }
-            list.innerHTML = data.map(b => {
-                const status = b.status || "PENDING";
-                const statusClass = status === 'PAID' ? 'status-paid' : 'status-pending';
-                
-                return `
-                    <tr>
-                        <td>#${b.id}</td>
-                        <td>${b.name}</td>
-                        <td>${b.phone}</td>
-                        <td>${b.bus_id}</td>
-                        <td><span class="status-badge ${statusClass}">${status}</span></td>
-                    </tr>
-                `;
-            }).join("");
-        });
-}
-
-function loadReports() {
-    fetch(`/api/all-buses?company_id=${currentCompanyId}`)
-        .then(res => res.json())
-        .then(b => {
-            if(Array.isArray(b)) document.getElementById("totalBuses").innerText = b.length;
-        });
-    fetch(`/api/bookings?company_id=${currentCompanyId}`)
-        .then(res => res.json())
-        .then(b => {
-            if(Array.isArray(b)) document.getElementById("totalBookings").innerText = b.length;
-        });
-}
-
-// Initial load
-loadBuses();
+    // Initial load
+    updateStats();
 </script>
 </body>
 </html>

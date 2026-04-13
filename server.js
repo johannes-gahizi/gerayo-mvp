@@ -9,28 +9,22 @@ app.use(express.static('public'));
 
 // --- Database Connection ---
 
-// 1. Get the URL with a fallback to avoid "must be a string" error
 const dbUrl = process.env.DATABASE_URL || ""; 
 
 if (!dbUrl) {
     console.error("❌ DATABASE_URL is missing! Check your .env file.");
 }
 
-// 2. Check if we should use SSL (only if it's a Render URL)
-const useSSL = dbUrl.includes('render.com');
-
+// Robust SSL Check for Render/Heroku
 const pool = new Pool({
     connectionString: dbUrl,
-    ssl: useSSL ? { rejectUnauthorized: false } : false
+    ssl: dbUrl.includes('render.com') || dbUrl.includes('localhost') ? false : { rejectUnauthorized: false }
 });
 
-// 3. Test the connection immediately to catch errors early
+// Test connection
 pool.connect((err) => {
-    if (err) {
-        console.error('❌ Database connection failed:', err.stack);
-    } else {
-        console.log('✅ Connected to Database');
-    }
+    if (err) console.error('❌ Database connection failed:', err.stack);
+    else console.log('✅ Connected to PostgreSQL');
 });
 
 // --- Database Initialization ---
@@ -54,23 +48,23 @@ async function createTables() {
             CREATE TABLE IF NOT EXISTS buses (
                 id SERIAL PRIMARY KEY,
                 company_id INTEGER REFERENCES companies(id),
-                from_city TEXT,
-                to_city TEXT,
-                time TEXT,
-                price INTEGER
+                from_city TEXT NOT NULL,
+                to_city TEXT NOT NULL,
+                time TEXT NOT NULL,
+                price INTEGER NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS bookings (
                 id SERIAL PRIMARY KEY,
                 bus_id INTEGER REFERENCES buses(id),
                 company_id INTEGER REFERENCES companies(id),
-                name TEXT,
-                phone TEXT,
+                name TEXT NOT NULL,
+                phone TEXT NOT NULL,
                 status TEXT DEFAULT 'PENDING',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
-        console.log("🚀 Database tables ready.");
+        console.log("🚀 Database Schema Verified.");
     } catch (err) {
         console.error("❌ Error creating tables:", err);
     }
@@ -81,6 +75,8 @@ createTables();
 
 app.post("/api/signup", async (req, res) => {
     const { fullname, email, password } = req.body;
+    if (!fullname || !email || !password) return res.status(400).json({ error: "All fields required" });
+
     try {
         const result = await pool.query(
             "INSERT INTO users (fullname, email, password) VALUES ($1, $2, $3) RETURNING id, fullname",
@@ -88,7 +84,7 @@ app.post("/api/signup", async (req, res) => {
         );
         res.json({ success: true, token: result.rows[0].id, userName: result.rows[0].fullname });
     } catch (err) {
-        res.status(400).json({ error: "Email already exists" });
+        res.status(400).json({ error: "Email already registered" });
     }
 });
 
@@ -102,184 +98,126 @@ app.post("/api/user-login", async (req, res) => {
         if (result.rows.length > 0) {
             res.json({ success: true, token: result.rows[0].id, userName: result.rows[0].fullname });
         } else {
-            res.status(401).json({ error: "Invalid credentials" });
+            res.status(401).json({ success: false, error: "Invalid email or password" });
         }
     } catch (err) {
-        res.status(500).json({ error: "Server error" });
+        res.status(500).json({ error: "Server authentication error" });
     }
 });
 
-// --- COMPANY AUTHENTICATION API ---
-
-app.post("/api/login", async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: "Missing credentials" });
-
-    try {
-        const result = await pool.query(
-            "SELECT * FROM companies WHERE username=$1 AND password=$2",
-            [username, password]
-        );
-
-        if (result.rows.length === 0) {
-            return res.json({ success: false });
-        }
-
-        const company = result.rows[0];
-        res.json({
-            success: true,
-            token: company.id,
-            companyName: company.name
-        });
-    } catch (err) {
-        res.status(500).json({ error: "Login error" });
-    }
-});
-
-// --- CUSTOMER APIs ---
+// --- CUSTOMER SEARCH & BOOKING ---
 
 app.get("/api/buses", async (req, res) => {
-    const { from, to, userToken } = req.query;
-    
-    if (!userToken) {
-        return res.status(401).json({ error: "Unauthorized. Please login." });
-    }
-    
+    const { from, to } = req.query;
     if (!from || !to) return res.json([]);
 
     try {
         const result = await pool.query(
-            `SELECT buses.id, buses.price, buses.time, 
-                    buses.from_city, buses.to_city, 
-                    companies.name as company 
-             FROM buses 
-             JOIN companies ON buses.company_id = companies.id 
-             WHERE LOWER(from_city)=LOWER($1) AND LOWER(to_city)=LOWER($2)`,
+            `SELECT b.id, b.price, b.time, b.from_city, b.to_city, c.name as company 
+             FROM buses b
+             JOIN companies c ON b.company_id = c.id 
+             WHERE LOWER(b.from_city) = LOWER($1) AND LOWER(b.to_city) = LOWER($2)`,
             [from, to]
         );
         res.json(result.rows);
     } catch (err) {
-        res.status(500).json({ error: "Search error" });
+        res.status(500).json({ error: "Failed to fetch buses" });
     }
 });
 
 app.post('/api/book', async (req, res) => {
     const { busId, name, phone } = req.body;
-    if (!busId || !name || !phone) return res.status(400).json({ error: "Missing booking info" });
+    if (!busId || !name || !phone) return res.status(400).json({ error: "Missing information" });
 
     try {
-        const busCheck = await pool.query('SELECT company_id FROM buses WHERE id = $1', [busId]);
-        if (busCheck.rows.length === 0) return res.status(404).json({ error: "Bus not found" });
-        
-        const companyId = busCheck.rows[0].company_id;
+        const bus = await pool.query('SELECT company_id FROM buses WHERE id = $1', [busId]);
+        if (bus.rows.length === 0) return res.status(404).json({ error: "Bus not found" });
 
         const result = await pool.query(
-            'INSERT INTO bookings (bus_id, company_id, name, phone, status) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-            [busId, companyId, name, phone, 'PENDING']
+            'INSERT INTO bookings (bus_id, company_id, name, phone) VALUES ($1, $2, $3, $4) RETURNING id',
+            [busId, bus.rows[0].company_id, name, phone]
         );
-        
         res.json({ success: true, bookingId: result.rows[0].id });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: "Booking failed" });
     }
 });
 
 app.get('/api/ticket/:id', async (req, res) => {
-    const { id } = req.params;
-
     try {
         const result = await pool.query(`
-            SELECT 
-                bookings.id as booking_id,
-                bookings.name as passenger_name,
-                bookings.phone,
-                bookings.status,
-                buses.price, 
-                buses.from_city, 
-                buses.to_city, 
-                buses.time,
-                companies.name as company_name
-            FROM bookings
-            JOIN buses ON bookings.bus_id = buses.id
-            JOIN companies ON bookings.company_id = companies.id
-            WHERE bookings.id = $1
-        `, [id]);
+            SELECT bk.id as booking_id, bk.name as passenger_name, bk.status,
+                   bs.from_city, bs.to_city, bs.time, c.name as company_name
+            FROM bookings bk
+            JOIN buses bs ON bk.bus_id = bs.id
+            JOIN companies c ON bk.company_id = c.id
+            WHERE bk.id = $1`, [req.params.id]);
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: "Ticket not found" });
-        }
-
+        if (result.rows.length === 0) return res.status(404).json({ error: "Ticket not found" });
         res.json(result.rows[0]);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: "Database error" });
     }
 });
 
 app.post('/api/pay', async (req, res) => {
     const { bookingId } = req.body;
-    if (!bookingId) return res.status(400).json({ error: "Invalid payment request" });
-
     try {
-        await pool.query(
-            "UPDATE bookings SET status = 'PAID' WHERE id = $1",
+        const result = await pool.query(
+            "UPDATE bookings SET status = 'PAID' WHERE id = $1 RETURNING id",
             [bookingId]
         );
-        res.json({ success: true, message: "Payment updated" });
+        if (result.rows.length === 0) return res.status(404).json({ error: "Booking not found" });
+        res.json({ success: true, message: "Payment verified" });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: "Payment update failed" });
     }
 });
 
-// --- ADMIN APIs ---
+// --- COMPANY DASHBOARD APIs ---
 
-app.post('/api/add-bus', async (req, res) => {
-    const { company_id, from, to, time, price } = req.body;
-    if (!company_id || !from || !to || !time || !price) return res.status(400).json({ error: "All fields are required" });
-
+app.post("/api/login", async (req, res) => {
+    const { username, password } = req.body;
     try {
-        await pool.query(
-            'INSERT INTO buses (company_id, from_city, to_city, time, price) VALUES ($1, $2, $3, $4, $5)',
-            [company_id, from, to, time, price]
-        );
-        res.json({ message: "Bus added successfully" });
+        const result = await pool.query("SELECT id, name FROM companies WHERE username=$1 AND password=$2", [username, password]);
+        if (result.rows.length > 0) {
+            res.json({ success: true, token: result.rows[0].id, companyName: result.rows[0].name });
+        } else {
+            res.json({ success: false, error: "Invalid Admin Credentials" });
+        }
     } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get('/api/all-buses', async (req, res) => {
-    const { company_id } = req.query;
-    if (!company_id) return res.json([]);
-    try {
-        const result = await pool.query('SELECT * FROM buses WHERE company_id = $1', [company_id]);
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: "Login system error" });
     }
 });
 
 app.get('/api/bookings', async (req, res) => {
     const { company_id } = req.query;
-    if (!company_id) return res.json([]);
     try {
-        const result = await pool.query('SELECT * FROM bookings WHERE company_id = $1 ORDER BY created_at DESC', [company_id]);
+        const result = await pool.query(
+            'SELECT b.*, bs.time, bs.from_city, bs.to_city FROM bookings b JOIN buses bs ON b.bus_id = bs.id WHERE b.company_id = $1 ORDER BY b.created_at DESC', 
+            [company_id]
+        );
         res.json(result.rows);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: "Could not fetch bookings" });
     }
 });
 
-// --- SETUP ROUTE ---
+// --- SYSTEM INITIALIZATION ---
+
 app.get('/api/setup-companies', async (req, res) => {
     const { key } = req.query;
     if (key !== 'admin123') return res.status(403).send("Unauthorized");
     try {
-        await pool.query(`INSERT INTO companies (name, username, password) VALUES ('Ritco', 'ritco', '1234'), ('Volcano Express', 'volcano', '1234') ON CONFLICT (username) DO NOTHING`);
-        res.send("Database structure checked and ready! ✅");
+        await pool.query(`
+            INSERT INTO companies (name, username, password) 
+            VALUES ('Ritco', 'ritco', '1234'), ('Volcano Express', 'volcano', '1234') 
+            ON CONFLICT (username) DO NOTHING`);
+        res.send("System ready! Companies initialized. ✅");
     } catch (err) {
         res.status(500).send("Error: " + err.message);
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Gerayo Server live on port ${PORT}`));

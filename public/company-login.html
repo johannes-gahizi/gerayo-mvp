@@ -1,185 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gerayo Admin Access</title>
-  <style>
-    :root {
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --bg: #f8fafc;
-      --text: #1e293b;
-      --card-bg: #ffffff;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerayo Admin | Secure Access</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #27ae60; /* Matches your Admin/Booking Green */
+            --primary-hover: #219150;
+            --bg: #f8fafc;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --white: #ffffff;
+        }
 
-    body {
-      font-family: 'Inter', -apple-system, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-    }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top right, #e2e8f0, #f8fafc);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
 
-    .login-card {
-      background: var(--card-bg);
-      padding: 2.5rem;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-      width: 100%;
-      max-width: 400px;
-      text-align: center;
-    }
+        .login-card {
+            background: var(--white);
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+            width: 100%;
+            max-width: 420px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
 
-    h2 {
-      margin-bottom: 0.5rem;
-      font-weight: 700;
-      color: #0f172a;
-    }
+        .logo-area {
+            text-align: center;
+            margin-bottom: 32px;
+        }
 
-    p.subtitle {
-      color: #64748b;
-      font-size: 0.875rem;
-      margin-bottom: 2rem;
-    }
+        .logo-area h1 {
+            color: var(--primary);
+            font-size: 2rem;
+            letter-spacing: -1.5px;
+            margin: 0;
+            font-weight: 800;
+        }
 
-    .input-group {
-      text-align: left;
-      margin-bottom: 1.25rem;
-    }
+        .logo-area p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
 
-    label {
-      display: block;
-      font-size: 0.875rem;
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-    }
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
 
-    input {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      box-sizing: border-box;
-      font-size: 1rem;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
+        label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
 
-    input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            color: var(--text-dark);
+            box-sizing: border-box;
+            transition: all 0.2s;
+            background: #fcfcfc;
+        }
 
-    button {
-      width: 100%;
-      padding: 0.75rem;
-      background-color: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background-color 0.2s;
-      margin-top: 1rem;
-    }
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(39, 174, 96, 0.1);
+        }
 
-    button:hover {
-      background-color: var(--primary-hover);
-    }
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 12px;
+        }
 
-    button:active {
-      transform: scale(0.98);
-    }
+        .btn-login:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 15px -3px rgba(39, 174, 96, 0.2);
+        }
 
-    #error {
-      color: #dc2626;
-      font-size: 0.875rem;
-      margin-top: 1rem;
-      min-height: 1.25rem;
-    }
-  </style>
+        .btn-login:disabled {
+            background-color: #cbd5e1;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #error {
+            color: #ef4444;
+            font-size: 0.85rem;
+            text-align: center;
+            margin-top: 16px;
+            font-weight: 500;
+            min-height: 20px;
+        }
+
+        .footer-links {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .footer-links a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+    </style>
 </head>
 <body>
 
-  <div class="login-card">
-    <h2>Gerayo Admin</h2>
-    <p class="subtitle">Secure access to transit management</p>
+    <div class="login-card">
+        <div class="logo-area">
+            <h1>GERAYO</h1>
+            <p>Admin Portal Access</p>
+        </div>
 
-    <div class="input-group">
-      <label for="username">Username</label>
-      <input type="text" id="username" placeholder="e.g. admin_johannes">
+        <div class="input-group">
+            <label for="username">Corporate Username</label>
+            <input type="text" id="username" placeholder="Enter your ID">
+        </div>
+
+        <div class="input-group">
+            <label for="password">Security Password</label>
+            <input type="password" id="password" placeholder="••••••••">
+        </div>
+
+        <button onclick="login()" id="loginBtn" class="btn-login">Sign In</button>
+
+        <p id="error"></p>
+
+        <div class="footer-links">
+            Don't have an account? <a href="/signup.html">Register Company</a>
+        </div>
     </div>
 
-    <div class="input-group">
-      <label for="password">Password</label>
-      <input type="password" id="password" placeholder="••••••••">
-    </div>
-
-    <button onclick="login()" id="loginBtn">Sign In</button>
-
-    <p id="error"></p>
-  </div>
-
-  <script>
-    // ✅ 1. Auto-redirect if already logged in
-    const existingId = localStorage.getItem("companyId");
-    if (existingId && existingId !== "undefined") {
-        window.location.href = "/admin.html";
-    }
-
-    async function login() {
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value;
-      const errorEl = document.getElementById("error");
-      const btn = document.getElementById("loginBtn");
-
-      if (!username || !password) {
-          errorEl.innerText = "Please enter both credentials.";
-          return;
-      }
-
-      // Visual feedback
-      errorEl.innerText = "";
-      btn.innerText = "Authenticating...";
-      btn.disabled = true;
-
-      try {
-        const res = await fetch("/api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password })
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-          // ✅ 2. Save both ID and Name for the Admin Panel to use
-          localStorage.setItem("companyId", data.token);
-          localStorage.setItem("companyName", data.companyName);
-          window.location.href = "/admin.html";
-        } else {
-          errorEl.innerText = data.message || "Invalid credentials. Please try again.";
-          btn.innerText = "Sign In";
-          btn.disabled = false;
+    <script>
+        // Redirect if already logged in
+        if (localStorage.getItem("companyId")) {
+            window.location.href = "admin.html";
         }
-      } catch (err) {
-        console.error("Login Error:", err);
-        errorEl.innerText = "Server connection failed.";
-        btn.innerText = "Sign In";
-        btn.disabled = false;
-      }
-    }
 
-    // Allow pressing "Enter" to login
-    document.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") login();
-    });
-  </script>
+        async function login() {
+            const username = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value;
+            const errorEl = document.getElementById("error");
+            const btn = document.getElementById("loginBtn");
+
+            if (!username || !password) {
+                errorEl.innerText = "Credentials are required to proceed.";
+                return;
+            }
+
+            errorEl.innerText = "";
+            btn.innerText = "Verifying...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch("/api/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    // Storing session data
+                    localStorage.setItem("companyId", data.token);
+                    localStorage.setItem("companyName", data.companyName);
+                    
+                    // Smooth transition
+                    window.location.href = "admin.html";
+                } else {
+                    errorEl.innerText = data.message || "Invalid credentials.";
+                    btn.innerText = "Sign In";
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                errorEl.innerText = "Unable to reach server. Try again later.";
+                btn.innerText = "Sign In";
+                btn.disabled = false;
+            }
+        }
+
+        // Handle Enter key
+        document.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") login();
+        });
+    </script>
 
 </body>
 </html>

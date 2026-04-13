@@ -3,16 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerayo - Travel Across Rwanda</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>Gerayo | Rwanda's Smartest Bus Booking</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #27ae60; --dark: #1e293b; }
-        body { font-family: 'Inter', sans-serif; margin: 0; background: #fff; color: var(--dark); }
+        :root { 
+            --primary: #27ae60; 
+            --dark: #0f172a; 
+            --text-light: #64748b;
+        }
         
+        body { font-family: 'Inter', sans-serif; margin: 0; background: #fff; color: var(--dark); overflow-x: hidden; }
+
+        /* Modern Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 20px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            box-sizing: border-box;
+            transition: background 0.3s;
+        }
+        
+        .logo { color: white; font-weight: 800; font-size: 1.5rem; text-decoration: none; letter-spacing: -1px; }
+        .logo span { color: var(--primary); }
+
+        .nav-links a { color: white; text-decoration: none; font-weight: 600; font-size: 0.9rem; margin-left: 20px; }
+        .nav-links .admin-link { border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px; border-radius: 8px; }
+
         /* Hero Section */
         .hero {
             height: 100vh;
-            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+            background: linear-gradient(rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.7)), 
                         url('https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80');
             background-size: cover;
             background-position: center;
@@ -24,57 +49,115 @@
             padding: 20px;
         }
 
-        .hero h1 { color: white; font-size: 3rem; margin-bottom: 10px; font-weight: 800; }
-        .hero p { color: #e2e8f0; font-size: 1.2rem; max-width: 500px; margin-bottom: 30px; }
+        .hero h1 { color: white; font-size: clamp(2.5rem, 8vw, 4rem); margin-bottom: 16px; font-weight: 800; letter-spacing: -2px; }
+        .hero p { color: #cbd5e1; font-size: 1.1rem; max-width: 600px; margin-bottom: 40px; line-height: 1.6; }
 
         .cta-btn {
             background: var(--primary);
             color: white;
-            padding: 18px 40px;
-            border-radius: 50px;
+            padding: 20px 48px;
+            border-radius: 16px;
             text-decoration: none;
             font-weight: 700;
             font-size: 1.1rem;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 10px 15px -3px rgba(39, 174, 96, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 20px -5px rgba(39, 174, 96, 0.4);
         }
 
-        .cta-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 20px -3px rgba(39, 174, 96, 0.4); }
+        .cta-btn:hover { 
+            transform: translateY(-4px); 
+            box-shadow: 0 20px 25px -5px rgba(39, 174, 96, 0.5);
+            background: #219150;
+        }
 
         /* Features Section */
-        .features { padding: 60px 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; max-width: 1000px; margin: 0 auto; }
-        .feature-card { text-align: center; padding: 20px; }
-        .feature-card h3 { color: var(--primary); margin-bottom: 10px; }
+        .features { 
+            padding: 100px 24px; 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+            gap: 40px; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+        }
+
+        .feature-card { 
+            background: #f8fafc;
+            padding: 40px; 
+            border-radius: 24px;
+            transition: transform 0.3s;
+            border: 1px solid #e2e8f0;
+        }
         
-        footer { padding: 40px; text-align: center; color: #94a3b8; font-size: 0.9rem; }
+        .feature-card:hover { transform: translateY(-10px); }
+        
+        .feature-icon { font-size: 2rem; margin-bottom: 20px; display: block; }
+        .feature-card h3 { font-size: 1.25rem; margin-bottom: 12px; font-weight: 700; }
+        .feature-card p { color: var(--text-light); line-height: 1.5; margin: 0; }
+        
+        footer { 
+            padding: 60px 20px; 
+            background: #0f172a; 
+            text-align: center; 
+            color: #64748b; 
+        }
+
+        @media (max-width: 768px) {
+            nav { padding: 20px; }
+            .nav-links { display: none; } /* Simplified for MVP mobile */
+        }
     </style>
 </head>
 <body>
 
+    <nav id="navbar">
+        <a href="#" class="logo">GE<span>RAYO</span></a>
+        <div class="nav-links">
+            <a href="search.html">Find Bus</a>
+            <a href="company-login.html" class="admin-link">Transport Partner</a>
+        </div>
+    </nav>
+
     <section class="hero">
-        <h1>GERAYO</h1>
-        <p>The smartest way to book your bus tickets across Rwanda. Fast, secure, and hassle-free.</p>
-        <a href="search.html" class="cta-btn">Book Your Trip Now</a>
+        <h1>Travel Rwanda Better.</h1>
+        <p>Book tickets from Ritco, Volcano, Horizon, and more—all in one place. Your journey starts with a simple click.</p>
+        <a href="search.html" class="cta-btn">Book Your Seat Now</a>
     </section>
 
     <section class="features">
         <div class="feature-card">
+            <span class="feature-icon">⚡</span>
             <h3>Skip the Queue</h3>
-            <p>No more waiting at Nyabugogo. Book from your phone in seconds.</p>
+            <p>Save time at the station. Get your ticket from your living room in under 60 seconds.</p>
         </div>
         <div class="feature-card">
-            <h3>MoMo Integrated</h3>
-            <p>Pay easily with MTN Mobile Money or Airtel Money.</p>
+            <span class="feature-icon">💳</span>
+            <h3>Pay via MoMo</h3>
+            <p>Seamlessly integrated with MTN and Airtel Money. Secure payments you can trust.</p>
         </div>
         <div class="feature-card">
-            <h3>Digital Tickets</h3>
-            <p>Get your QR-coded ticket instantly on your screen.</p>
+            <span class="feature-icon">📱</span>
+            <h3>Digital First</h3>
+            <p>No printing needed. Show your digital QR ticket to the driver and hop on board.</p>
         </div>
     </section>
 
     <footer>
-        &copy; 2026 Gerayo MVP. Built for Rwanda.
+        <p>&copy; 2026 Gerayo MVP. Redefining Rwandan transit.</p>
     </footer>
+
+    <script>
+        // Navbar transparency effect
+        window.onscroll = function() {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                nav.style.background = '#0f172a';
+                nav.style.padding = '15px 50px';
+            } else {
+                nav.style.background = 'transparent';
+                nav.style.padding = '20px 50px';
+            }
+        };
+    </script>
 
 </body>
 </html>

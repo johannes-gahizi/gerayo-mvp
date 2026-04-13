@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerayo - Secure Payment</title>
+    <title>Gerayo | Secure MoMo Payment</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #27ae60;
-            --momo: #ffcc00; /* MTN Yellow */
-            --dark: #1e293b;
+            --momo-yellow: #ffcc00;
+            --dark: #0f172a;
             --bg: #f8fafc;
+            --border: #e2e8f0;
         }
 
         body {
@@ -20,160 +21,174 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
+            padding: 20px;
         }
 
         .payment-card {
             background: white;
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             padding: 40px;
-            border-radius: 24px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border-radius: 28px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
             text-align: center;
+            border: 1px solid var(--border);
         }
 
-        .header h2 { color: var(--dark); margin-bottom: 8px; }
-        .header p { color: #64748b; font-size: 14px; margin-bottom: 30px; }
+        .header h2 { color: var(--dark); margin: 0 0 8px 0; font-weight: 800; }
+        .header p { color: #64748b; font-size: 0.9rem; margin-bottom: 30px; }
 
         .price-box {
             background: #f1f5f9;
-            padding: 20px;
-            border-radius: 16px;
+            padding: 24px;
+            border-radius: 20px;
             margin-bottom: 25px;
         }
 
-        .price-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
-        .price-amount { font-size: 32px; font-weight: 700; color: var(--primary); display: block; }
+        .price-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
+        .price-amount { font-size: 2rem; font-weight: 800; color: var(--primary); display: block; margin-top: 4px; }
 
-        .method-selector {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 30px;
-        }
-
-        .method {
-            border: 2px solid #e2e8f0;
-            padding: 15px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 14px;
+        .input-group { text-align: left; margin-bottom: 24px; }
+        label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+        
+        input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            font-size: 1.1rem;
             font-weight: 600;
+            box-sizing: border-box;
+            transition: all 0.2s;
         }
 
-        .method.active {
-            border-color: var(--primary);
-            background: #f0fdf4;
-            color: var(--primary);
+        input:focus {
+            outline: none;
+            border-color: var(--momo-yellow);
+            box-shadow: 0 0 0 4px rgba(255, 204, 0, 0.15);
         }
 
         .pay-btn {
             width: 100%;
-            background: var(--primary);
+            background: var(--dark);
             color: white;
             border: none;
-            padding: 16px;
-            border-radius: 12px;
-            font-size: 16px;
+            padding: 18px;
+            border-radius: 16px;
+            font-size: 1rem;
             font-weight: 700;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
         }
 
-        .pay-btn:active { transform: scale(0.98); }
+        .pay-btn:hover { background: #000; transform: translateY(-2px); }
+        .pay-btn:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; }
 
         .loader {
             display: none;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--primary);
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid white;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
+            width: 18px;
+            height: 18px;
+            animation: spin 0.8s linear infinite;
         }
 
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .momo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #fff9db;
+            color: #856404;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
 
 <div class="payment-card">
+    <div class="momo-badge">🟡 MTN & Airtel Money Secure</div>
+    
     <div class="header">
-        <h2>Checkout</h2>
-        <p>Complete your booking for Reference #<span id="ref-id">...</span></p>
+        <h2>Finish Booking</h2>
+        <p>Reference: <span id="ref-id" style="font-weight:700; color:var(--dark)">...</span></p>
     </div>
 
     <div class="price-box">
-        <span class="price-label">Total to Pay</span>
-        <span class="price-amount">... RWF</span>
+        <span class="price-label">Amount Due</span>
+        <span class="price-amount" id="price-display">0 RWF</span>
     </div>
 
-    <div class="method-selector">
-        <div class="method active" onclick="selectMethod(this)">Mobile Money</div>
-        <div class="method" onclick="selectMethod(this)">Card</div>
+    <div class="input-group">
+        <label>Mobile Money Number</label>
+        <input type="tel" id="momo-phone" placeholder="078 XXX XXXX">
     </div>
 
     <button class="pay-btn" onclick="processPayment()" id="payBtn">
-        <span id="btnText">Pay Securely</span>
+        <span id="btnText">Authorize Payment</span>
         <div class="loader" id="loader"></div>
     </button>
+
+    <p id="status-msg" style="margin-top: 20px; font-size: 0.85rem; color: #64748b;"></p>
 </div>
+
 <script>
     const params = new URLSearchParams(window.location.search);
     const bookingId = params.get("bookingId");
-    
-    // We fetch the company_id from the URL or the loaded data later
     let currentCompanyId = null;
 
     async function loadBookingDetails() {
-        if (!bookingId) {
-            alert("Missing Booking ID");
-            window.location.href = 'index.html';
-            return;
-        }
-        document.getElementById("ref-id").innerText = bookingId;
+        if (!bookingId) return window.location.href = 'index.html';
+        
+        document.getElementById("ref-id").innerText = `#${bookingId}`;
 
         try {
-            // ✅ FIX: This now works because we added the route to server.js
             const res = await fetch(`/api/ticket/${bookingId}`);
             const data = await res.json();
             
             if (data.price) {
-                document.getElementById("price-display").innerText = `${data.price} RWF`;
-                // Store the company_id returned from the database
+                document.getElementById("price-display").innerText = `${Number(data.price).toLocaleString()} RWF`;
                 currentCompanyId = data.company_id; 
             }
         } catch (e) { 
-            console.error("Could not fetch booking details"); 
+            console.error("Fetch error:", e); 
         }
     }
 
     loadBookingDetails();
 
     async function processPayment() {
-        const phone = document.getElementById("momo-phone").value;
+        const phone = document.getElementById("momo-phone").value.replace(/\s/g, '');
         const btnText = document.getElementById("btnText");
         const loader = document.getElementById("loader");
         const payBtn = document.getElementById("payBtn");
+        const statusMsg = document.getElementById("status-msg");
 
-        // ✅ FIX: Strong Rwanda Phone Validation
         if (!/^07[2389]\d{7}$/.test(phone)) {
-            alert("Please enter a valid Rwanda MoMo number (078/079/072/073 followed by 7 digits)");
+            alert("Invalid number. Please use 078, 079, 072, or 073.");
             return;
         }
 
-        btnText.style.display = "none";
+        btnText.innerText = "Checking Phone...";
         loader.style.display = "block";
         payBtn.disabled = true;
 
-        // Simulate network delay for MoMo handshake
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        // Stage 1: Handshake
+        setTimeout(() => { statusMsg.innerText = "Check your phone for the MoMo PIN prompt..."; }, 1500);
 
+        // Stage 2: Finalize
         try {
-            // ✅ FIX: Sending both bookingId AND company_id
             const res = await fetch("/api/pay", {
                 method: "POST",
                 headers: {"Content-Type":"application/json"},
@@ -183,15 +198,19 @@
                 })
             });
 
-            if (!res.ok) throw new Error("Payment failed");
+            if (!res.ok) throw new Error("Transaction timed out or declined.");
 
-            window.location.href = `ticket.html?id=${bookingId}`;
+            // Success Delay for effect
+            setTimeout(() => {
+                window.location.href = `ticket.html?id=${bookingId}`;
+            }, 2000);
 
         } catch (err) {
-            alert("Error: " + err.message);
-            btnText.style.display = "block";
+            alert(err.message);
+            btnText.innerText = "Authorize Payment";
             loader.style.display = "none";
             payBtn.disabled = false;
+            statusMsg.innerText = "";
         }
     }
 </script>
