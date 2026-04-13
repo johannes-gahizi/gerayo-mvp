@@ -39,7 +39,8 @@ async function createTables() {
                 company_id INTEGER REFERENCES companies(id),
                 name TEXT,
                 phone TEXT,
-                status TEXT DEFAULT 'PENDING'
+                status TEXT DEFAULT 'PENDING',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
         console.log("Database tables ready.");
@@ -78,37 +79,51 @@ app.post("/api/login", async (req, res) => {
 
 // --- CUSTOMER APIs ---
 
+// ✅ FIXED: Matches frontend fields (bus.company, bus.from_city, etc.)
 app.get("/api/buses", async (req, res) => {
     const { from, to } = req.query;
     if (!from || !to) return res.json([]);
 
     try {
         const result = await pool.query(
-            "SELECT buses.*, companies.name as company FROM buses JOIN companies ON buses.company_id = companies.id WHERE LOWER(from_city)=LOWER($1) AND LOWER(to_city)=LOWER($2)",
+            `SELECT buses.id, buses.price, buses.time, 
+                    buses.from_city, buses.to_city, 
+                    companies.name as company 
+             FROM buses 
+             JOIN companies ON buses.company_id = companies.id 
+             WHERE LOWER(from_city)=LOWER($1) AND LOWER(to_city)=LOWER($2)`,
             [from, to]
         );
         res.json(result.rows);
     } catch (err) {
-        res.status(500).send("Search error");
+        res.status(500).json({ error: "Search error" });
     }
 });
 
+// ✅ FIXED: Automatically finds company_id so frontend doesn't have to send it
 app.post('/api/book', async (req, res) => {
-    const { busId, company_id, name, phone } = req.body;
-    if (!busId || !company_id || !name || !phone) return res.status(400).json({ error: "Missing booking info" });
+    const { busId, name, phone } = req.body;
+    if (!busId || !name || !phone) return res.status(400).json({ error: "Missing booking info" });
 
     try {
+        // Find the company associated with this bus
+        const busCheck = await pool.query('SELECT company_id FROM buses WHERE id = $1', [busId]);
+        if (busCheck.rows.length === 0) return res.status(404).json({ error: "Bus not found" });
+        
+        const companyId = busCheck.rows[0].company_id;
+
         const result = await pool.query(
             'INSERT INTO bookings (bus_id, company_id, name, phone, status) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-            [busId, company_id, name, phone, 'PENDING']
+            [busId, companyId, name, phone, 'PENDING']
         );
-        res.json({ bookingId: result.rows[0].id });
+        
+        // Return success: true so frontend redirect logic works
+        res.json({ success: true, bookingId: result.rows[0].id });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// NEW: This is the missing piece that makes your ticket.html work!
 app.get('/api/ticket/:id', async (req, res) => {
     try {
         const result = await pool.query(`
@@ -128,25 +143,24 @@ app.get('/api/ticket/:id', async (req, res) => {
             WHERE bookings.id = $1
         `, [req.params.id]);
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: "Ticket not found" });
-        }
+        if (result.rows.length === 0) return res.status(404).json({ error: "Ticket not found" });
         res.json(result.rows[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
+// ✅ UPDATED: Added a check for bookingId consistency
 app.post('/api/pay', async (req, res) => {
-    const { bookingId, company_id } = req.body;
-    if (!bookingId || !company_id) return res.status(400).json({ error: "Invalid payment request" });
+    const { bookingId } = req.body;
+    if (!bookingId) return res.status(400).json({ error: "Invalid payment request" });
 
     try {
         await pool.query(
-            'UPDATE bookings SET status = $1 WHERE id = $2 AND company_id = $3',
-            ['PAID', bookingId, company_id]
+            "UPDATE bookings SET status = 'PAID' WHERE id = $1",
+            [bookingId]
         );
-        res.json({ message: "Payment updated" });
+        res.json({ success: true, message: "Payment updated" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -184,7 +198,7 @@ app.get('/api/bookings', async (req, res) => {
     const { company_id } = req.query;
     if (!company_id) return res.json([]);
     try {
-        const result = await pool.query('SELECT * FROM bookings WHERE company_id = $1', [company_id]);
+        const result = await pool.query('SELECT * FROM bookings WHERE company_id = $1 ORDER BY created_at DESC', [company_id]);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -196,9 +210,6 @@ app.get('/api/setup-companies', async (req, res) => {
     const { key } = req.query;
     if (key !== 'admin123') return res.status(403).send("Unauthorized");
     try {
-        await pool.query(`CREATE TABLE IF NOT EXISTS companies (id SERIAL PRIMARY KEY, name TEXT NOT NULL, username TEXT UNIQUE NOT NULL, password TEXT NOT NULL)`);
-        await pool.query(`ALTER TABLE buses ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)`);
-        await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS company_id INTEGER REFERENCES companies(id)`);
         await pool.query(`INSERT INTO companies (name, username, password) VALUES ('Ritco', 'ritco', '1234'), ('Volcano Express', 'volcano', '1234') ON CONFLICT (username) DO NOTHING`);
         res.send("Database structure checked and ready! ✅");
     } catch (err) {

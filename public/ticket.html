@@ -80,6 +80,7 @@
             margin: 10px 0;
         }
 
+        /* Ticket "Cut-out" effect */
         .divider::before, .divider::after {
             content: '';
             position: absolute;
@@ -89,9 +90,8 @@
             border-radius: 50%;
             top: -11px;
         }
-
-        .divider::before { left: -30px; }
-        .divider::after { right: -30px; }
+        .divider::before { left: -10px; }
+        .divider::after { right: -10px; }
 
         .qr-section {
             text-align: center;
@@ -119,6 +119,8 @@
             border-radius: 5px;
             font-size: 14px;
             color: var(--dark);
+            display: inline-block;
+            margin-top: 5px;
         }
 
         .footer-note {
@@ -129,14 +131,27 @@
 
         .no-print {
             margin-top: 20px;
-            background: none;
-            border: 1px solid var(--primary);
+            background: white;
+            border: 2px solid var(--primary);
             color: var(--primary);
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
             cursor: pointer;
-            font-weight: 600;
+            font-weight: 700;
+            transition: 0.3s;
+        }
+
+        .no-print:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .error-container {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 20px;
         }
 
         @media print {
@@ -148,19 +163,19 @@
 </head>
 <body>
 
-<div class="ticket">
+<div id="ticket-container" class="ticket" style="display: none;">
     <div class="ticket-header">
-        <h1 id="company-name">GERAYO TICKET</h1>
+        <h1 id="company-name">LOADING...</h1>
     </div>
 
     <div class="ticket-body">
         <div class="info-row">
             <div>
                 <span class="label">Passenger</span>
-                <span class="value" id="passenger-name">Loading...</span>
+                <span class="value" id="passenger-name">...</span>
             </div>
             <div style="text-align: right;">
-                <span class="label">Date</span>
+                <span class="label">Travel Date</span>
                 <span class="value" id="ticket-date">...</span>
             </div>
         </div>
@@ -170,7 +185,7 @@
                 <span class="label">From</span>
                 <span class="value" id="from-city">...</span>
             </div>
-            <div style="text-align: center; color: var(--primary); padding-top: 15px;">
+            <div style="text-align: center; color: var(--primary); padding-top: 15px; font-weight: 800;">
                 →
             </div>
             <div style="text-align: right;">
@@ -185,8 +200,8 @@
                 <span class="value" id="departure-time">...</span>
             </div>
             <div style="text-align: right;">
-                <span class="label">Seat</span>
-                <span class="value" id="seat-number">Auto</span>
+                <span class="label">Status</span>
+                <span class="value" id="ticket-status" style="color: var(--primary);">PAID</span>
             </div>
         </div>
     </div>
@@ -198,54 +213,81 @@
             <img id="qr-code-img" src="" alt="QR Code" style="width: 100%; display: none;">
             <div id="qr-loading">Generating QR...</div>
         </div>
-        <span class="label">Booking Reference</span>
+        <span class="label">Booking Reference</span><br>
         <span class="booking-id" id="display-id">REF-0000</span>
-        <p class="footer-note">Please present this digital ticket to the conductor when boarding.</p>
+        <p class="footer-note">Scan this code at the bus station to board.</p>
         
-        <button class="no-print" onclick="window.print()">Download as PDF / Print</button>
+        <button class="no-print" onclick="window.print()">Download Ticket (PDF)</button>
     </div>
+</div>
+
+<div id="error-screen" class="error-container" style="display: none;">
+    <h2 id="error-title" style="color: #e74c3c;">Access Denied</h2>
+    <p id="error-msg">Please complete payment before accessing your ticket.</p>
+    <a href="index.html" style="color: var(--primary); font-weight: 700;">Back to Search</a>
 </div>
 
 <script>
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
 
-    if (id) {
-        // Fetch real data from the server using the Booking ID
-        fetch(`/api/ticket/${id}`)
-            .then(res => {
-                if (!res.ok) throw new Error("Ticket not found");
-                return res.json();
-            })
-            .then(data => {
-                // Update UI with real data
-                document.getElementById("passenger-name").innerText = data.passenger_name;
-                document.getElementById("company-name").innerText = data.company_name;
-                document.getElementById("from-city").innerText = data.from_city;
-                document.getElementById("to-city").innerText = data.to_city;
-                document.getElementById("departure-time").innerText = data.time;
-                document.getElementById("display-id").innerText = "GRY-" + data.booking_id;
-                
-                // Set a current date (since we don't store travel date yet)
-                const today = new Date().toLocaleDateString('en-GB', {
-                    day: 'numeric', month: 'long', year: 'numeric'
-                });
-                document.getElementById("ticket-date").innerText = today;
+    async function loadTicket() {
+        if (!id) {
+            showError("No Ticket ID", "Please search for a bus and book first.");
+            return;
+        }
 
-                // Update QR Code with real ticket data
-                const qrData = `GERAYO|ID:${data.booking_id}|NAME:${data.passenger_name}|ROUTE:${data.from_city}-${data.to_city}`;
-                const qrImg = document.getElementById("qr-code-img");
-                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}`;
-                qrImg.style.display = "block";
-                document.getElementById("qr-loading").style.display = "none";
-            })
-            .catch(err => {
-                console.error(err);
-                document.getElementById("passenger-name").innerText = "Error loading ticket";
+        try {
+            const res = await fetch(`/api/ticket/${id}`);
+            const data = await res.json();
+
+            if (!res.ok) throw new Error("Ticket not found");
+
+            // ✅ CRITICAL SAFETY CHECK: Only show if PAID
+            if (data.status !== 'PAID') {
+                showError("Payment Required", "Your booking is still pending. Please pay first.");
+                return;
+            }
+
+            // Populate the Ticket UI
+            document.getElementById("passenger-name").innerText = data.passenger_name;
+            document.getElementById("company-name").innerText = data.company_name;
+            document.getElementById("from-city").innerText = data.from_city;
+            document.getElementById("to-city").innerText = data.to_city;
+            document.getElementById("departure-time").innerText = data.time;
+            document.getElementById("display-id").innerText = "GRY-" + data.booking_id;
+            
+            // Format today's date
+            const dateStr = new Date().toLocaleDateString('en-RW', {
+                day: 'numeric', month: 'short', year: 'numeric'
             });
-    } else {
-        document.getElementById("passenger-name").innerText = "No Ticket ID provided";
+            document.getElementById("ticket-date").innerText = dateStr;
+
+            // Generate QR Code
+            const qrData = `GERAYO|REF:${data.booking_id}|PASS:${data.passenger_name}|ROUTE:${data.from_city}-${data.to_city}`;
+            const qrImg = document.getElementById("qr-code-img");
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}`;
+            
+            qrImg.onload = () => {
+                document.getElementById("qr-loading").style.display = "none";
+                qrImg.style.display = "block";
+            };
+
+            // Show ticket, hide error
+            document.getElementById("ticket-container").style.display = "block";
+
+        } catch (err) {
+            showError("Ticket Error", "We couldn't find a record for this ticket reference.");
+        }
     }
+
+    function showError(title, msg) {
+        document.getElementById("error-screen").style.display = "block";
+        document.getElementById("error-title").innerText = title;
+        document.getElementById("error-msg").innerText = msg;
+    }
+
+    loadTicket();
 </script>
 
 </body>

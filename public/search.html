@@ -3,138 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerayo - Book Bus Tickets</title>
+    <title>Gerayo - Complete Booking</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
     <style>
-        :root {
-            --primary-color: #27ae60;
-            --primary-hover: #219150;
-            --bg-color: #f0f2f5;
-            --text-main: #2c3e50;
-            --white: #ffffff;
-        }
+        :root { --primary: #27ae60; --bg: #f0f2f5; --text: #2c3e50; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        
+        .booking-card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 400px; }
+        h2 { color: var(--text); margin-top: 0; font-size: 22px; text-align: center; }
+        
+        .summary-box { background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #cbd5e1; }
+        .summary-box p { margin: 5px 0; font-size: 14px; color: #64748b; }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; font-size: 12px; font-weight: 700; color: #7f8c8d; margin-bottom: 5px; text-transform: uppercase; }
+        input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; outline: none; box-sizing: border-box; }
+        input:focus { border-color: var(--primary); }
 
-        /* The Main Container */
-        .search-container {
-            background: var(--white);
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            width: 100%;
-            max-width: 450px;
-            text-align: center;
-        }
-
-        h1 {
-            color: var(--text-main);
-            font-weight: 700;
-            margin-bottom: 30px;
-            font-size: 24px;
-            letter-spacing: -0.5px;
-        }
-
-        /* Label styling */
-        .input-group {
-            text-align: left;
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            color: #7f8c8d;
-            margin-bottom: 8px;
-        }
-
-        /* Modern Input & Select styling */
-        select, input {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-            outline: none;
-            box-sizing: border-box; /* Critical for padding */
-        }
-
-        select:focus {
-            border-color: var(--primary-color);
-        }
-
-        /* Beautiful Button */
-        button {
-            width: 100%;
-            padding: 14px;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
-        }
-
-        button:hover {
-            background-color: var(--primary-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
+        .confirm-btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .confirm-btn:hover { background: #219150; transform: translateY(-1px); }
+        .loader { display: none; text-align: center; color: var(--primary); font-weight: 600; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div class="search-container">
-    <h1>GERAYO</h1>
+<div class="booking-card">
+    <h2>Passenger Details</h2>
     
-    <div class="input-group">
-        <label for="from">Departure City</label>
-        <select id="from">
-            <option>Kigali</option>
-            <option>Gisenyi</option>
-        </select>
+    <div id="bus-summary" class="summary-box">
+        <p>Loading trip details...</p>
     </div>
 
     <div class="input-group">
-        <label for="to">Destination</label>
-        <select id="to">
-            <option>Huye</option>
-            <option>Musanze</option>
-            <option>Rubavu</option>
-        </select>
+        <label>Full Name</label>
+        <input type="text" id="passenger-name" placeholder="e.g. Jean Doe" required>
     </div>
 
-    <button onclick="search()">Search Tickets</button>
+    <div class="input-group">
+        <label>MoMo Number</label>
+        <input type="tel" id="passenger-phone" placeholder="078... or 072..." required>
+    </div>
+
+    <button class="confirm-btn" onclick="submitBooking()">Proceed to Payment</button>
+    <div id="loading" class="loader">Processing Booking...</div>
 </div>
 
 <script>
-    function search() {
-        const from = document.getElementById("from").value;
-        const to = document.getElementById("to").value;
-        // Basic validation
-        if (from === to) {
-            alert("Departure and destination cannot be the same!");
+    // Extract busId from the URL (from search.html)
+    const urlParams = new URLSearchParams(window.location.search);
+    const busId = urlParams.get('busId');
+
+    if (!busId) {
+        alert("No bus selected! Redirecting to search...");
+        window.location.href = 'index.html';
+    }
+
+    async function submitBooking() {
+        const name = document.getElementById('passenger-name').value;
+        const phone = document.getElementById('passenger-phone').value;
+        const btn = document.querySelector('.confirm-btn');
+        const loader = document.getElementById('loading');
+
+        if (!name || !phone) {
+            alert("Please fill in all details");
             return;
         }
-        window.location.href = `results.html?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+
+        // UX: Show loading, hide button
+        btn.style.display = 'none';
+        loader.style.display = 'block';
+
+        try {
+            const response = await fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    busId: busId,
+                    name: name,
+                    phone: phone
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // ✅ CORRECTED FLOW: Redirect to payment.html with bookingId
+                window.location.href = `payment.html?bookingId=${data.bookingId}`;
+            } else {
+                throw new Error(data.message || "Booking failed");
+            }
+
+        } catch (error) {
+            alert("Error: " + error.message);
+            btn.style.display = 'block';
+            loader.style.display = 'none';
+        }
     }
 </script>
 

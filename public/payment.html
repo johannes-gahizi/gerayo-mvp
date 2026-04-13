@@ -121,53 +121,78 @@
         <div class="loader" id="loader"></div>
     </button>
 </div>
-
 <script>
     const params = new URLSearchParams(window.location.search);
     const bookingId = params.get("bookingId");
-    const company_id = params.get("company_id");
+    
+    // We fetch the company_id from the URL or the loaded data later
+    let currentCompanyId = null;
 
-    // Display the reference ID
-    document.getElementById("ref-id").innerText = bookingId;
+    async function loadBookingDetails() {
+        if (!bookingId) {
+            alert("Missing Booking ID");
+            window.location.href = 'index.html';
+            return;
+        }
+        document.getElementById("ref-id").innerText = bookingId;
 
-    // Optional: Fetch actual price from your API to show here
-    // For now, we'll keep it simple.
-
-    function selectMethod(el) {
-        document.querySelectorAll('.method').forEach(m => m.classList.remove('active'));
-        el.classList.add('active');
+        try {
+            // ✅ FIX: This now works because we added the route to server.js
+            const res = await fetch(`/api/ticket/${bookingId}`);
+            const data = await res.json();
+            
+            if (data.price) {
+                document.getElementById("price-display").innerText = `${data.price} RWF`;
+                // Store the company_id returned from the database
+                currentCompanyId = data.company_id; 
+            }
+        } catch (e) { 
+            console.error("Could not fetch booking details"); 
+        }
     }
 
-    function processPayment() {
+    loadBookingDetails();
+
+    async function processPayment() {
+        const phone = document.getElementById("momo-phone").value;
         const btnText = document.getElementById("btnText");
         const loader = document.getElementById("loader");
         const payBtn = document.getElementById("payBtn");
 
-        // UI Loading state
+        // ✅ FIX: Strong Rwanda Phone Validation
+        if (!/^07[2389]\d{7}$/.test(phone)) {
+            alert("Please enter a valid Rwanda MoMo number (078/079/072/073 followed by 7 digits)");
+            return;
+        }
+
         btnText.style.display = "none";
         loader.style.display = "block";
         payBtn.disabled = true;
 
-        // Call the Payment API we built in server.js
-        fetch("/api/pay", {
-            method: "POST",
-            headers: {"Content-Type":"application/json"},
-            body: JSON.stringify({ bookingId, company_id })
-        })
-        .then(res => {
+        // Simulate network delay for MoMo handshake
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        try {
+            // ✅ FIX: Sending both bookingId AND company_id
+            const res = await fetch("/api/pay", {
+                method: "POST",
+                headers: {"Content-Type":"application/json"},
+                body: JSON.stringify({ 
+                    bookingId: bookingId, 
+                    company_id: currentCompanyId 
+                })
+            });
+
             if (!res.ok) throw new Error("Payment failed");
-            return res.json();
-        })
-        .then(() => {
-            // Success! Send to ticket
+
             window.location.href = `ticket.html?id=${bookingId}`;
-        })
-        .catch(err => {
+
+        } catch (err) {
             alert("Error: " + err.message);
             btnText.style.display = "block";
             loader.style.display = "none";
             payBtn.disabled = false;
-        });
+        }
     }
 </script>
 
