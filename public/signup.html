@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    </head>
+<body>
+    <div class="auth-card">
+        <h2>Create Account</h2>
+        <p>Join Gerayo to start traveling</p>
+        <div class="input-group">
+            <label>Full Name</label>
+            <input type="text" id="fullname" placeholder="Jean Doe">
+        </div>
+        <div class="input-group">
+            <label>Email</label>
+            <input type="email" id="email" placeholder="you@example.com">
+        </div>
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="••••••••">
+        </div>
+        <button class="btn" onclick="signup()">Sign Up</button>
+        <div class="link">Already have an account? <a href="login.html">Login</a></div>
+    </div>
+
+    <script>
+        async function signup() {
+            const fullname = document.getElementById('fullname').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const res = await fetch('/api/signup', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ fullname, email, password })
+            });
+            const data = await res.json();
+            if (data.success) {
+                localStorage.setItem("userToken", data.token);
+                localStorage.setItem("userName", data.userName);
+                window.location.href = "search.html";
+            } else {
+                alert(data.error);
+            }
+        }
+    </script>
+</body>
+</html>

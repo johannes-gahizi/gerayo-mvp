@@ -1,16 +1,36 @@
+require('dotenv').config(); 
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
-require('dotenv').config();
 
 const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
 // --- Database Connection ---
+
+// 1. Get the URL with a fallback to avoid "must be a string" error
+const dbUrl = process.env.DATABASE_URL || ""; 
+
+if (!dbUrl) {
+    console.error("❌ DATABASE_URL is missing! Check your .env file.");
+}
+
+// 2. Check if we should use SSL (only if it's a Render URL)
+const useSSL = dbUrl.includes('render.com');
+
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    connectionString: dbUrl,
+    ssl: useSSL ? { rejectUnauthorized: false } : false
+});
+
+// 3. Test the connection immediately to catch errors early
+pool.connect((err) => {
+    if (err) {
+        console.error('❌ Database connection failed:', err.stack);
+    } else {
+        console.log('✅ Connected to Database');
+    }
 });
 
 // --- Database Initialization ---
@@ -21,6 +41,13 @@ async function createTables() {
                 id SERIAL PRIMARY KEY,
                 name TEXT NOT NULL,
                 username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                fullname TEXT,
+                email TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL
             );
 
@@ -43,14 +70,46 @@ async function createTables() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
-        console.log("Database tables ready.");
+        console.log("🚀 Database tables ready.");
     } catch (err) {
-        console.error("Error creating tables:", err);
+        console.error("❌ Error creating tables:", err);
     }
 }
 createTables();
 
-// --- AUTHENTICATION API ---
+// --- PASSENGER AUTH APIs ---
+
+app.post("/api/signup", async (req, res) => {
+    const { fullname, email, password } = req.body;
+    try {
+        const result = await pool.query(
+            "INSERT INTO users (fullname, email, password) VALUES ($1, $2, $3) RETURNING id, fullname",
+            [fullname, email, password]
+        );
+        res.json({ success: true, token: result.rows[0].id, userName: result.rows[0].fullname });
+    } catch (err) {
+        res.status(400).json({ error: "Email already exists" });
+    }
+});
+
+app.post("/api/user-login", async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const result = await pool.query(
+            "SELECT id, fullname FROM users WHERE email=$1 AND password=$2",
+            [email, password]
+        );
+        if (result.rows.length > 0) {
+            res.json({ success: true, token: result.rows[0].id, userName: result.rows[0].fullname });
+        } else {
+            res.status(401).json({ error: "Invalid credentials" });
+        }
+    } catch (err) {
+        res.status(500).json({ error: "Server error" });
+    }
+});
+
+// --- COMPANY AUTHENTICATION API ---
 
 app.post("/api/login", async (req, res) => {
     const { username, password } = req.body;
@@ -79,9 +138,13 @@ app.post("/api/login", async (req, res) => {
 
 // --- CUSTOMER APIs ---
 
-// ✅ FIXED: Matches frontend fields (bus.company, bus.from_city, etc.)
 app.get("/api/buses", async (req, res) => {
-    const { from, to } = req.query;
+    const { from, to, userToken } = req.query;
+    
+    if (!userToken) {
+        return res.status(401).json({ error: "Unauthorized. Please login." });
+    }
+    
     if (!from || !to) return res.json([]);
 
     try {
@@ -100,13 +163,11 @@ app.get("/api/buses", async (req, res) => {
     }
 });
 
-// ✅ FIXED: Automatically finds company_id so frontend doesn't have to send it
 app.post('/api/book', async (req, res) => {
     const { busId, name, phone } = req.body;
     if (!busId || !name || !phone) return res.status(400).json({ error: "Missing booking info" });
 
     try {
-        // Find the company associated with this bus
         const busCheck = await pool.query('SELECT company_id FROM buses WHERE id = $1', [busId]);
         if (busCheck.rows.length === 0) return res.status(404).json({ error: "Bus not found" });
         
@@ -117,7 +178,6 @@ app.post('/api/book', async (req, res) => {
             [busId, companyId, name, phone, 'PENDING']
         );
         
-        // Return success: true so frontend redirect logic works
         res.json({ success: true, bookingId: result.rows[0].id });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -125,32 +185,36 @@ app.post('/api/book', async (req, res) => {
 });
 
 app.get('/api/ticket/:id', async (req, res) => {
+    const { id } = req.params;
+
     try {
         const result = await pool.query(`
             SELECT 
                 bookings.id as booking_id,
                 bookings.name as passenger_name,
-                bookings.phone as passenger_phone,
+                bookings.phone,
                 bookings.status,
-                buses.from_city,
-                buses.to_city,
+                buses.price, 
+                buses.from_city, 
+                buses.to_city, 
                 buses.time,
-                buses.price,
                 companies.name as company_name
             FROM bookings
             JOIN buses ON bookings.bus_id = buses.id
             JOIN companies ON bookings.company_id = companies.id
             WHERE bookings.id = $1
-        `, [req.params.id]);
+        `, [id]);
 
-        if (result.rows.length === 0) return res.status(404).json({ error: "Ticket not found" });
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Ticket not found" });
+        }
+
         res.json(result.rows[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// ✅ UPDATED: Added a check for bookingId consistency
 app.post('/api/pay', async (req, res) => {
     const { bookingId } = req.body;
     if (!bookingId) return res.status(400).json({ error: "Invalid payment request" });
