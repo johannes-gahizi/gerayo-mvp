@@ -61,6 +61,8 @@ async function createTables() {
                 name TEXT NOT NULL,
                 phone TEXT NOT NULL,
                 status TEXT DEFAULT 'PENDING',
+                payment_status TEXT DEFAULT 'PENDING',
+                payment_reference TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
