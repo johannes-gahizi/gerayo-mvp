@@ -218,6 +218,41 @@ app.get('/api/setup-companies', async (req, res) => {
         res.status(500).send("Error: " + err.message);
     }
 });
+// ✅ GET buses for admin (company only)
+app.get('/api/all-buses', async (req, res) => {
+    const { company_id } = req.query;
 
+    if (!company_id) return res.json([]);
+
+    try {
+        const result = await pool.query(
+            'SELECT * FROM buses WHERE company_id = $1 ORDER BY id DESC',
+            [company_id]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to fetch buses" });
+    }
+});
+
+// ✅ ADD new bus
+app.post('/api/add-bus', async (req, res) => {
+    const { company_id, from, to, time, price } = req.body;
+
+    if (!company_id || !from || !to || !time || !price) {
+        return res.status(400).json({ error: "All fields required" });
+    }
+
+    try {
+        await pool.query(
+            'INSERT INTO buses (company_id, from_city, to_city, time, price) VALUES ($1, $2, $3, $4, $5)',
+            [company_id, from, to, time, price]
+        );
+
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to add bus" });
+    }
+});
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Gerayo Server live on port ${PORT}`));

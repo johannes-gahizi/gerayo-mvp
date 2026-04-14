@@ -1,113 +1,181 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerayo - Passenger Details</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root { --primary: #27ae60; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        
-        .booking-card { background: white; padding: 32px; border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05); width: 100%; max-width: 420px; border: 1px solid var(--border); }
-        h2 { color: var(--text); margin: 0 0 20px 0; font-size: 1.25rem; font-weight: 800; text-align: center; }
-        
-        /* Trip Preview Box */
-        .summary-box { background: #f1f5f9; padding: 16px; border-radius: 12px; margin-bottom: 24px; border: 1px solid var(--border); }
-        .summary-box .route { font-weight: 700; color: var(--text); font-size: 0.95rem; display: block; }
-        .summary-box .meta { font-size: 0.8rem; color: #64748b; margin-top: 4px; display: block; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerayo - Search & Book</title>
 
-        .input-group { margin-bottom: 20px; }
-        label { display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-        input { width: 100%; padding: 14px; border: 2.3px solid var(--border); border-radius: 12px; font-size: 1rem; outline: none; box-sizing: border-box; transition: all 0.2s; }
-        input:focus { border-color: var(--primary); background: #fff; }
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
-        .confirm-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 14px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-        .confirm-btn:hover { background: #219150; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(39, 174, 96, 0.3); }
-        
-        .loader { display: none; text-align: center; color: var(--primary); font-weight: 700; margin-top: 15px; font-size: 0.9rem; }
-    </style>
+<style>
+:root {
+    --primary: #27ae60;
+    --bg: #f5f7fa;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    margin: 0;
+    padding: 20px;
+}
+
+/* Search Box */
+.search-box {
+    background: white;
+    padding: 25px;
+    border-radius: 16px;
+    max-width: 600px;
+    margin: auto;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+}
+
+select, button, input {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+button {
+    background: var(--primary);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Results */
+.result {
+    max-width: 600px;
+    margin: 20px auto;
+}
+
+.card {
+    background: white;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Booking Form */
+.booking {
+    display: none;
+    max-width: 600px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+}
+</style>
 </head>
+
 <body>
 
-<div class="booking-card">
-    <h2>Passenger Info</h2>
-    
-    <div id="bus-summary" class="summary-box">
-        <span class="route" id="display-route">Fetching trip details...</span>
-        <span class="meta" id="display-time">Please wait</span>
-    </div>
+<div class="search-box">
+    <h2>Search Tickets</h2>
 
-    <div class="input-group">
-        <label>Your Full Name</label>
-        <input type="text" id="passenger-name" placeholder="Enter your name" required>
-    </div>
+    <select id="from">
+        <option>Kigali</option>
+        <option>Musanze</option>
+        <option>Rubavu</option>
+    </select>
 
-    <div class="input-group">
-        <label>Payment Phone (MoMo)</label>
-        <input type="tel" id="passenger-phone" placeholder="078 / 079 / 072 / 073" required>
-    </div>
+    <select id="to">
+        <option>Musanze</option>
+        <option>Kigali</option>
+        <option>Rubavu</option>
+    </select>
 
-    <button class="confirm-btn" id="submit-btn" onclick="submitBooking()">Continue to Payment</button>
-    <div id="loading" class="loader">🔄 Securing your seat...</div>
+    <button onclick="search()">Search</button>
+</div>
+
+<div id="results" class="result"></div>
+
+<div id="booking" class="booking">
+    <h3>Passenger Info</h3>
+
+    <p id="selectedBus"></p>
+
+    <input id="name" placeholder="Full Name">
+    <input id="phone" placeholder="Phone">
+
+    <button onclick="confirmBooking()">Continue to Payment</button>
 </div>
 
 <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const busId = urlParams.get('busId');
+let selectedBus = null;
 
-    // FIX 1: Corrected filename to user-login.html
-    if (!localStorage.getItem("userToken")) {
-        alert("Please login to access booking.");
-        window.location.href = "user-login.html";
-    }
+// 🔍 SEARCH
+async function search() {
+    const from = document.getElementById("from").value;
+    const to = document.getElementById("to").value;
 
-    window.onload = async () => {
-        // FIX 2: If no busId, don't error out—just ask them to pick one.
-        if (!busId) {
-            document.getElementById('display-route').innerText = "Ready to book?";
-            document.getElementById('display-time').innerText = "Please select a bus route from the list.";
-            return;
-        }
+    const res = await fetch(`/api/buses?from=${from}&to=${to}`);
+    const data = await res.json();
 
-        try {
-            const res = await fetch(`/api/search`); 
-            const buses = await res.json();
-            const bus = buses.find(b => b.id == busId);
-            
-            if (bus) {
-                document.getElementById('display-route').innerText = `${bus.from_city} → ${bus.to_city}`;
-                document.getElementById('display-time').innerText = `${bus.time} | ${bus.price} RWF`;
-            } else {
-                // If ID is invalid
-                document.getElementById('display-route').innerText = "Bus not found";
-            }
-        } catch (e) {
-            console.error("Preview failed", e);
-        }
-    };
+    const results = document.getElementById("results");
 
-    async function submitBooking() {
-    const name = document.getElementById('passenger-name').value.trim();
-    const phone = document.getElementById('passenger-phone').value.trim();
-    
-    // Ensure we have a bus/company context
-    if (!busId) {
-        alert("Please select a bus first.");
+    if (data.length === 0) {
+        results.innerHTML = "No buses found";
         return;
     }
 
-    if (!name || !phone) {
-        alert("Please provide your name and phone number.");
-        return;
-    }
+    results.innerHTML = data.map(bus => `
+        <div class="card">
+            <div>
+                <b>${bus.company}</b><br>
+                ${bus.from_city} → ${bus.to_city}<br>
+                ${bus.time}
+            </div>
+            <div>
+                ${bus.price} RWF<br>
+                <button onclick='selectBus(${JSON.stringify(bus)})'>Select</button>
+            </div>
+        </div>
+    `).join("");
+}
 
-    // Logic: Forward to booking.html with all info in the URL
-    // We assume companyId=1 for now, or pull it from your data if available
-    const companyId = urlParams.get('companyId') || "1"; 
-    
-    window.location.href = `booking.html?busId=${busId}&companyId=${companyId}&name=${encodeURIComponent(name)}&phone=${phone}`;
+// 🚌 SELECT BUS
+function selectBus(bus) {
+    selectedBus = bus;
+
+    document.getElementById("booking").style.display = "block";
+    document.getElementById("selectedBus").innerText =
+        `${bus.from_city} → ${bus.to_city} | ${bus.time} | ${bus.price} RWF`;
+
+    window.scrollTo(0, document.body.scrollHeight);
+}
+
+// 🎟 BOOK
+async function confirmBooking() {
+    const name = document.getElementById("name").value;
+    const phone = document.getElementById("phone").value;
+
+    if (!name || !phone) return alert("Fill all fields");
+
+    const res = await fetch("/api/book", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            busId: selectedBus.id,
+            name,
+            phone
+        })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+        // 👉 go to payment
+        window.location.href = `payment.html?bookingId=${data.bookingId}`;
+    } else {
+        alert("Booking failed");
+    }
 }
 </script>
+
 </body>
 </html>

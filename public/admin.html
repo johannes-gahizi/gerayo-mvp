@@ -256,7 +256,12 @@
         const list = document.getElementById("bookingList");
         const res = await fetch(`/api/bookings?company_id=${currentCompanyId}`);
         const data = await res.json();
-        
+
+if (!Array.isArray(data)) {
+    console.error("Invalid data:", data);
+    list.innerHTML = "<tr><td>Error loading buses</td></tr>";
+    return;
+}
         list.innerHTML = data.map(b => `
             <tr>
                 <td><b>${b.name}</b></td>
