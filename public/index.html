@@ -145,28 +145,23 @@
     <footer>
         <p>&copy; 2026 Gerayo MVP. Redefining Rwandan transit.</p>
     </footer>
+<script>
+    // 1. Handle Navbar background on scroll
+    window.onscroll = function() {
+        const nav = document.getElementById('navbar');
+        if (window.scrollY > 50) {
+            nav.style.background = '#0f172a';
+            nav.style.padding = '15px 50px';
+        } else {
+            nav.style.background = 'transparent';
+            nav.style.padding = '20px 50px';
+        }
+    };
 
-    <script>
-        // 1. Handle Navbar background on scroll
-        window.onscroll = function() {
-            const nav = document.getElementById('navbar');
-            if (window.scrollY > 50) {
-                nav.style.background = '#0f172a';
-                nav.style.padding = '15px 50px';
-            } else {
-                nav.style.background = 'transparent';
-                nav.style.padding = '20px 50px';
-            }
-        };
+    // Removed the automatic redirect to search.html 
+    // This ensures users always see the landing page first as you requested.
+</script>
 
-        // 2. Auth Guard: Redirect if already logged in
-        window.onload = function() {
-            const token = localStorage.getItem("userToken");
-            if (token) {
-                window.location.href = "search.html";
-            }
-        };
-    </script>
 
 </body>
 </html>

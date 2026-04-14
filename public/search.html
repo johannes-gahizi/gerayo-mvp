@@ -56,16 +56,21 @@
     const urlParams = new URLSearchParams(window.location.search);
     const busId = urlParams.get('busId');
 
-    // Load trip preview on start
+    // FIX 1: Corrected filename to user-login.html
+    if (!localStorage.getItem("userToken")) {
+        alert("Please login to access booking.");
+        window.location.href = "user-login.html";
+    }
+
     window.onload = async () => {
+        // FIX 2: If no busId, don't error out—just ask them to pick one.
         if (!busId) {
-            alert("Session expired. Please search for a bus again.");
-            window.location.href = 'index.html';
+            document.getElementById('display-route').innerText = "Ready to book?";
+            document.getElementById('display-time').innerText = "Please select a bus route from the list.";
             return;
         }
 
         try {
-            // Adjust this API call to match your actual search endpoint if needed
             const res = await fetch(`/api/search`); 
             const buses = await res.json();
             const bus = buses.find(b => b.id == busId);
@@ -73,6 +78,9 @@
             if (bus) {
                 document.getElementById('display-route').innerText = `${bus.from_city} → ${bus.to_city}`;
                 document.getElementById('display-time').innerText = `${bus.time} | ${bus.price} RWF`;
+            } else {
+                // If ID is invalid
+                document.getElementById('display-route').innerText = "Bus not found";
             }
         } catch (e) {
             console.error("Preview failed", e);
@@ -82,25 +90,30 @@
     async function submitBooking() {
         const name = document.getElementById('passenger-name').value.trim();
         const phone = document.getElementById('passenger-phone').value.trim();
-        const btn = document.getElementById('submit-btn');
-        const loader = document.getElementById('loading');
+        
+        // FIX 3: Ensure we have a bus selected before allowing booking
+        if (!busId) {
+            alert("Please go back and select a specific bus first.");
+            return;
+        }
 
         if (!name || !phone) {
             alert("Please provide your name and phone number.");
             return;
         }
 
-        // Phone validation for Rwanda
         if (!/^07[2389]\d{7}$/.test(phone)) {
             alert("Please enter a valid Rwandan phone number.");
             return;
         }
 
+        const btn = document.getElementById('submit-btn');
+        const loader = document.getElementById('loading');
         btn.style.display = 'none';
         loader.style.display = 'block';
 
         try {
-            const response = await fetch('/api/book', { // Note: using /api/book to match your earlier setup
+            const response = await fetch('/api/book', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -111,14 +124,11 @@
             });
 
             const data = await response.json();
-
             if (response.ok) {
-                // Moving to the payment page we just polished!
                 window.location.href = `payment.html?bookingId=${data.bookingId}`;
             } else {
                 throw new Error(data.error || "Booking failed");
             }
-
         } catch (error) {
             alert("Oops! " + error.message);
             btn.style.display = 'block';
@@ -126,6 +136,5 @@
         }
     }
 </script>
-
 </body>
 </html>
