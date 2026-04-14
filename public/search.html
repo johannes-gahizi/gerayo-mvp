@@ -88,53 +88,26 @@
     };
 
     async function submitBooking() {
-        const name = document.getElementById('passenger-name').value.trim();
-        const phone = document.getElementById('passenger-phone').value.trim();
-        
-        // FIX 3: Ensure we have a bus selected before allowing booking
-        if (!busId) {
-            alert("Please go back and select a specific bus first.");
-            return;
-        }
-
-        if (!name || !phone) {
-            alert("Please provide your name and phone number.");
-            return;
-        }
-
-        if (!/^07[2389]\d{7}$/.test(phone)) {
-            alert("Please enter a valid Rwandan phone number.");
-            return;
-        }
-
-        const btn = document.getElementById('submit-btn');
-        const loader = document.getElementById('loading');
-        btn.style.display = 'none';
-        loader.style.display = 'block';
-
-        try {
-            const response = await fetch('/api/book', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    busId: busId,
-                    name: name,
-                    phone: phone
-                })
-            });
-
-            const data = await response.json();
-            if (response.ok) {
-                window.location.href = `payment.html?bookingId=${data.bookingId}`;
-            } else {
-                throw new Error(data.error || "Booking failed");
-            }
-        } catch (error) {
-            alert("Oops! " + error.message);
-            btn.style.display = 'block';
-            loader.style.display = 'none';
-        }
+    const name = document.getElementById('passenger-name').value.trim();
+    const phone = document.getElementById('passenger-phone').value.trim();
+    
+    // Ensure we have a bus/company context
+    if (!busId) {
+        alert("Please select a bus first.");
+        return;
     }
+
+    if (!name || !phone) {
+        alert("Please provide your name and phone number.");
+        return;
+    }
+
+    // Logic: Forward to booking.html with all info in the URL
+    // We assume companyId=1 for now, or pull it from your data if available
+    const companyId = urlParams.get('companyId') || "1"; 
+    
+    window.location.href = `booking.html?busId=${busId}&companyId=${companyId}&name=${encodeURIComponent(name)}&phone=${phone}`;
+}
 </script>
 </body>
 </html>
