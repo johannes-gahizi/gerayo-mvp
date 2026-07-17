@@ -4,178 +4,205 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gerayo - Search & Book</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-    --primary: #27ae60;
-    --bg: #f5f7fa;
+    --primary: #16a34a;
+    --primary-soft: #dcfce7;
+    --dark: #0f172a;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --bg: #f8fafc;
+    --white: #ffffff;
 }
-
 body {
     font-family: 'Inter', sans-serif;
-    background: var(--bg);
+    background: linear-gradient(135deg, #f8fafc 0%, #ecfdf5 100%);
     margin: 0;
-    padding: 20px;
+    padding: 24px;
+    color: var(--text);
 }
-
-/* Search Box */
+.container {
+    max-width: 760px;
+    margin: 0 auto;
+}
 .search-box {
-    background: white;
-    padding: 25px;
-    border-radius: 16px;
-    max-width: 600px;
-    margin: auto;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    background: var(--white);
+    padding: 24px;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+    border: 1px solid var(--border);
 }
-
+.search-box h2 {
+    margin: 0 0 6px;
+    font-size: 1.5rem;
+}
+.search-box p {
+    color: var(--muted);
+    margin-top: 0;
+}
 select, button, input {
     width: 100%;
-    padding: 12px;
+    padding: 12px 14px;
     margin-top: 10px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    font-size: 1rem;
+    box-sizing: border-box;
 }
-
 button {
     background: var(--primary);
     color: white;
-    font-weight: bold;
+    font-weight: 700;
     cursor: pointer;
+    border: none;
 }
-
-/* Results */
+button:hover { opacity: 0.95; }
 .result {
-    max-width: 600px;
-    margin: 20px auto;
+    margin-top: 20px;
 }
-
 .card {
-    background: white;
-    padding: 15px;
-    margin-bottom: 10px;
-    border-radius: 12px;
+    background: var(--white);
+    padding: 16px;
+    margin-bottom: 12px;
+    border-radius: 16px;
     display: flex;
     justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--border);
 }
-
-/* Booking Form */
+.card .meta { flex: 1; }
+.card .price { text-align: right; }
 .booking {
     display: none;
-    max-width: 600px;
-    margin: auto;
-    background: white;
+    margin-top: 20px;
+    background: var(--white);
     padding: 20px;
     border-radius: 16px;
+    border: 1px solid var(--border);
+}
+.status {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 0.95rem;
 }
 </style>
 </head>
-
 <body>
+<div class="container">
+    <div class="search-box">
+        <h2>Search Tickets</h2>
+        <p>Find a comfortable ride between Rwanda’s major cities.</p>
+        <select id="from">
+            <option>Kigali</option>
+            <option>Musanze</option>
+            <option>Rubavu</option>
+        </select>
+        <select id="to">
+            <option>Musanze</option>
+            <option>Kigali</option>
+            <option>Rubavu</option>
+        </select>
+        <button onclick="search()">Search Buses</button>
+    </div>
 
-<div class="search-box">
-    <h2>Search Tickets</h2>
+    <div id="results" class="result"></div>
 
-    <select id="from">
-        <option>Kigali</option>
-        <option>Musanze</option>
-        <option>Rubavu</option>
-    </select>
-
-    <select id="to">
-        <option>Musanze</option>
-        <option>Kigali</option>
-        <option>Rubavu</option>
-    </select>
-
-    <button onclick="search()">Search</button>
-</div>
-
-<div id="results" class="result"></div>
-
-<div id="booking" class="booking">
-    <h3>Passenger Info</h3>
-
-    <p id="selectedBus"></p>
-
-    <input id="name" placeholder="Full Name">
-    <input id="phone" placeholder="Phone">
-
-    <button onclick="confirmBooking()">Continue to Payment</button>
+    <div id="booking" class="booking">
+        <h3>Passenger Info</h3>
+        <p id="selectedBus"></p>
+        <input id="name" placeholder="Full Name">
+        <input id="phone" placeholder="Phone Number">
+        <button onclick="confirmBooking()">Continue to Payment</button>
+    </div>
 </div>
 
 <script>
 let selectedBus = null;
 
-// 🔍 SEARCH
 async function search() {
     const from = document.getElementById("from").value;
     const to = document.getElementById("to").value;
-
-    const res = await fetch(`/api/buses?from=${from}&to=${to}`);
-    const data = await res.json();
-
     const results = document.getElementById("results");
 
-    if (data.length === 0) {
-        results.innerHTML = "No buses found";
+    results.innerHTML = '<div class="status">Searching available buses...</div>';
+
+    try {
+        const res = await fetch(`/api/buses?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+            results.innerHTML = '<div class="status">No buses found for this route yet. Try another route.</div>';
+            return;
+        }
+
+        results.innerHTML = data.map(bus => `
+            <div class="card">
+                <div class="meta">
+                    <strong>${bus.company}</strong><br>
+                    ${bus.from_city} → ${bus.to_city}<br>
+                    ${bus.time} • ${Math.max(0, bus.seats_left || 0)} seats left
+                </div>
+                <div class="price">
+                    <div>${Number(bus.price).toLocaleString()} RWF</div>
+                    <button onclick='selectBus(${JSON.stringify(bus)})'>Select</button>
+                </div>
+            </div>
+        `).join("");
+    } catch (error) {
+        console.error(error);
+        results.innerHTML = '<div class="status">We could not load buses right now. Please try again shortly.</div>';
+    }
+}
+
+function selectBus(bus) {
+    selectedBus = bus;
+    document.getElementById("booking").style.display = "block";
+    document.getElementById("selectedBus").innerText =
+        `${bus.from_city} → ${bus.to_city} | ${bus.time} | ${Number(bus.price).toLocaleString()} RWF`;
+
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+
+async function confirmBooking() {
+    const name = document.getElementById("name").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+
+    if (!selectedBus) {
+        alert("Please select a bus first.");
         return;
     }
 
-    results.innerHTML = data.map(bus => `
-        <div class="card">
-            <div>
-                <b>${bus.company}</b><br>
-                ${bus.from_city} → ${bus.to_city}<br>
-                ${bus.time}
-            </div>
-            <div>
-                ${bus.price} RWF<br>
-                <button onclick='selectBus(${JSON.stringify(bus)})'>Select</button>
-            </div>
-        </div>
-    `).join("");
-}
+    if (!name || !phone) {
+        alert("Please fill in your name and phone number.");
+        return;
+    }
 
-// 🚌 SELECT BUS
-function selectBus(bus) {
-    selectedBus = bus;
+    try {
+        const res = await fetch("/api/book", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                busId: selectedBus.id,
+                name,
+                phone
+            })
+        });
 
-    document.getElementById("booking").style.display = "block";
-    document.getElementById("selectedBus").innerText =
-        `${bus.from_city} → ${bus.to_city} | ${bus.time} | ${bus.price} RWF`;
+        const data = await res.json();
 
-    window.scrollTo(0, document.body.scrollHeight);
-}
-
-// 🎟 BOOK
-async function confirmBooking() {
-    const name = document.getElementById("name").value;
-    const phone = document.getElementById("phone").value;
-
-    if (!name || !phone) return alert("Fill all fields");
-
-    const res = await fetch("/api/book", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            busId: selectedBus.id,
-            name,
-            phone
-        })
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-        // 👉 go to payment
-        window.location.href = `payment.html?bookingId=${data.bookingId}`;
-    } else {
-        alert("Booking failed");
+        if (data.success) {
+            window.location.href = `payment.html?bookingId=${data.bookingId}`;
+        } else {
+            alert(data.error || "Booking failed");
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Booking could not be completed right now.");
     }
 }
 </script>
-
 </body>
 </html>

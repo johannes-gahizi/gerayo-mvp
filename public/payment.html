@@ -7,16 +7,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #27ae60;
-            --momo-yellow: #ffcc00;
+            --primary: #16a34a;
+            --primary-soft: #dcfce7;
             --dark: #0f172a;
-            --bg: #f8fafc;
+            --text: #1e293b;
+            --muted: #64748b;
             --border: #e2e8f0;
+            --bg: #f8fafc;
+            --white: #ffffff;
         }
-
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg);
+            background: linear-gradient(135deg, #f8fafc 0%, #ecfdf5 100%);
             margin: 0;
             display: flex;
             justify-content: center;
@@ -24,58 +26,50 @@
             min-height: 100vh;
             padding: 20px;
         }
-
         .payment-card {
             background: white;
             width: 100%;
-            max-width: 420px;
-            padding: 40px;
-            border-radius: 28px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+            max-width: 440px;
+            padding: 32px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
             text-align: center;
             border: 1px solid var(--border);
         }
-
         .header h2 { color: var(--dark); margin: 0 0 8px 0; font-weight: 800; }
-        .header p { color: #64748b; font-size: 0.9rem; margin-bottom: 30px; }
-
+        .header p { color: #64748b; font-size: 0.95rem; margin-bottom: 24px; }
         .price-box {
-            background: #f1f5f9;
-            padding: 24px;
-            border-radius: 20px;
-            margin-bottom: 25px;
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
         }
-
         .price-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
         .price-amount { font-size: 2rem; font-weight: 800; color: var(--primary); display: block; margin-top: 4px; }
-
-        .input-group { text-align: left; margin-bottom: 24px; }
+        .input-group { text-align: left; margin-bottom: 20px; }
         label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
-        
         input {
             width: 100%;
-            padding: 16px;
+            padding: 14px 16px;
             border: 2px solid var(--border);
-            border-radius: 14px;
-            font-size: 1.1rem;
-            font-weight: 600;
+            border-radius: 12px;
+            font-size: 1rem;
             box-sizing: border-box;
             transition: all 0.2s;
         }
-
         input:focus {
             outline: none;
-            border-color: var(--momo-yellow);
-            box-shadow: 0 0 0 4px rgba(255, 204, 0, 0.15);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.12);
         }
-
         .pay-btn {
             width: 100%;
             background: var(--dark);
             color: white;
             border: none;
-            padding: 18px;
-            border-radius: 16px;
+            padding: 16px;
+            border-radius: 14px;
             font-size: 1rem;
             font-weight: 700;
             cursor: pointer;
@@ -85,10 +79,8 @@
             align-items: center;
             gap: 10px;
         }
-
         .pay-btn:hover { background: #000; transform: translateY(-2px); }
         .pay-btn:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; }
-
         .loader {
             display: none;
             border: 3px solid rgba(255,255,255,0.3);
@@ -98,9 +90,7 @@
             height: 18px;
             animation: spin 0.8s linear infinite;
         }
-
         @keyframes spin { 100% { transform: rotate(360deg); } }
-
         .momo-badge {
             display: inline-flex;
             align-items: center;
@@ -111,15 +101,18 @@
             border-radius: 8px;
             font-size: 0.75rem;
             font-weight: 700;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
+        }
+        .route-text {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-top: 8px;
         }
     </style>
 </head>
 <body>
-
 <div class="payment-card">
     <div class="momo-badge">🟡 MTN & Airtel Money Secure</div>
-    
     <div class="header">
         <h2>Finish Booking</h2>
         <p>Reference: <span id="ref-id" style="font-weight:700; color:var(--dark)">...</span></p>
@@ -127,7 +120,8 @@
 
     <div class="price-box">
         <span class="price-label">Amount Due</span>
-        <span class="price-amount" id="price-display">0 RWF</span>
+        <span class="price-amount" id="price-display">Loading...</span>
+        <div class="route-text" id="route-display"></div>
     </div>
 
     <div class="input-group">
@@ -146,74 +140,90 @@
 <script>
     const params = new URLSearchParams(window.location.search);
     const bookingId = params.get("bookingId");
-    let currentCompanyId = null;
 
     async function loadBookingDetails() {
         if (!bookingId) return window.location.href = 'index.html';
-        
+
         document.getElementById("ref-id").innerText = `#${bookingId}`;
 
         try {
             const res = await fetch(`/api/ticket/${bookingId}`);
             const data = await res.json();
-            
+
             if (data.price) {
                 document.getElementById("price-display").innerText = `${Number(data.price).toLocaleString()} RWF`;
-                currentCompanyId = data.company_id; 
+                document.getElementById("route-display").innerText = `${data.from_city || ''} → ${data.to_city || ''} • ${data.time || ''}`;
             }
-        } catch (e) { 
-            console.error("Fetch error:", e); 
+        } catch (e) {
+            console.error("Fetch error:", e);
+            document.getElementById("price-display").innerText = "Unable to load price";
         }
     }
 
     loadBookingDetails();
 
     async function processPayment() {
-        const phone = document.getElementById("momo-phone").value.replace(/\s/g, '');
-        const btnText = document.getElementById("btnText");
+        const phone = document.getElementById("momo-phone").value.trim();
+        if (!phone) return alert("Enter phone number");
+
+        const btn = document.getElementById("payBtn");
         const loader = document.getElementById("loader");
-        const payBtn = document.getElementById("payBtn");
-        const statusMsg = document.getElementById("status-msg");
+        const btnText = document.getElementById("btnText");
+        btn.disabled = true;
+        loader.style.display = 'inline-block';
+        btnText.innerText = 'Processing...';
+        document.getElementById("status-msg").innerText = "📲 Payment request sent. Check your phone...";
 
-        if (!/^07[2389]\d{7}$/.test(phone)) {
-            alert("Invalid number. Please use 078, 079, 072, or 073.");
-            return;
-        }
-
-        btnText.innerText = "Checking Phone...";
-        loader.style.display = "block";
-        payBtn.disabled = true;
-
-        // Stage 1: Handshake
-        setTimeout(() => { statusMsg.innerText = "Check your phone for the MoMo PIN prompt..."; }, 1500);
-
-        // Stage 2: Finalize
         try {
-            const res = await fetch("/api/pay", {
+            await fetch("/api/pay-request", {
                 method: "POST",
                 headers: {"Content-Type":"application/json"},
-                body: JSON.stringify({ 
-                    bookingId: bookingId, 
-                    company_id: currentCompanyId 
-                })
+                body: JSON.stringify({ bookingId, phone })
             });
-
-            if (!res.ok) throw new Error("Transaction timed out or declined.");
-
-            // Success Delay for effect
-            setTimeout(() => {
-                window.location.href = `ticket.html?id=${bookingId}`;
-            }, 2000);
-
-        } catch (err) {
-            alert(err.message);
-            btnText.innerText = "Authorize Payment";
-            loader.style.display = "none";
-            payBtn.disabled = false;
-            statusMsg.innerText = "";
+            checkPaymentStatus();
+        } catch (e) {
+            console.error(e);
+            btn.disabled = false;
+            loader.style.display = 'none';
+            btnText.innerText = 'Authorize Payment';
+            document.getElementById("status-msg").innerText = "Payment request could not be sent.";
         }
     }
-</script>
 
+    function checkPaymentStatus() {
+        const interval = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/ticket/${bookingId}`);
+                const data = await res.json();
+
+                if (!data.payment_status) return;
+
+                if (data.payment_status === "PAID") {
+                    clearInterval(interval);
+                    alert("✅ Payment successful!");
+                    window.location.href = `ticket.html?id=${bookingId}`;
+                }
+
+                if (data.payment_status === "FAILED") {
+                    clearInterval(interval);
+                    alert("❌ Payment failed. Try again.");
+                    document.getElementById("payBtn").disabled = false;
+                    document.getElementById("loader").style.display = 'none';
+                    document.getElementById("btnText").innerText = 'Authorize Payment';
+                }
+
+                if (data.payment_status === "EXPIRED") {
+                    clearInterval(interval);
+                    alert("⏳ Payment timed out.");
+                    document.getElementById("payBtn").disabled = false;
+                    document.getElementById("loader").style.display = 'none';
+                    document.getElementById("btnText").innerText = 'Authorize Payment';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }, 2000);
+    }
+</script>
 </body>
 </html>

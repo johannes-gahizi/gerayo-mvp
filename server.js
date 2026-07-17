@@ -14,6 +14,10 @@ const dbUrl = process.env.DATABASE_URL || "";
 if (!dbUrl) {
     console.error("❌ DATABASE_URL is missing! Check your .env file.");
 }
+// Place this near the top
+function sendSMS(phone, message) {
+    console.log(`📩 SMS to ${phone}: ${message}`);
+}
 
 // Robust SSL Check for Render/Heroku
 const pool = new Pool({
@@ -28,7 +32,7 @@ pool.connect((err) => {
 });
 
 // --- Database Initialization ---
-async function createTables() {
+async function initializeDatabase() {
     try {
         await pool.query(`
             CREATE TABLE IF NOT EXISTS companies (
@@ -51,7 +55,8 @@ async function createTables() {
                 from_city TEXT NOT NULL,
                 to_city TEXT NOT NULL,
                 time TEXT NOT NULL,
-                price INTEGER NOT NULL
+                price INTEGER NOT NULL,
+                total_seats INTEGER DEFAULT 30
             );
 
             CREATE TABLE IF NOT EXISTS bookings (
@@ -63,15 +68,66 @@ async function createTables() {
                 status TEXT DEFAULT 'PENDING',
                 payment_status TEXT DEFAULT 'PENDING',
                 payment_reference TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                seat_number INTEGER
             );
         `);
+
+        await pool.query(`ALTER TABLE buses ADD COLUMN IF NOT EXISTS total_seats INTEGER DEFAULT 30;`);
+        await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'PENDING';`);
+        await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'PENDING';`);
+        await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_reference TEXT;`);
+        await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;`);
+        await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS seat_number INTEGER;`);
+
+        await pool.query(`
+            INSERT INTO companies (name, username, password)
+            VALUES ('Ritco', 'ritco', '1234'), ('Volcano Express', 'volcano', '1234')
+            ON CONFLICT (username) DO NOTHING
+        `);
+
+        const defaultBuses = [
+            ['Ritco', 'Kigali', 'Musanze', '08:00', 2500],
+            ['Ritco', 'Kigali', 'Rubavu', '11:00', 4000],
+            ['Volcano Express', 'Kigali', 'Huye', '09:30', 3000],
+            ['Volcano Express', 'Musanze', 'Kigali', '15:00', 2800]
+        ];
+
+        for (const [companyName, fromCity, toCity, time, price] of defaultBuses) {
+            await pool.query(`
+                INSERT INTO buses (company_id, from_city, to_city, time, price, total_seats)
+                SELECT c.id, $1, $2, $3, $4, 30
+                FROM companies c
+                WHERE c.name = $5
+                  AND NOT EXISTS (
+                      SELECT 1 FROM buses b
+                      WHERE b.company_id = c.id
+                        AND LOWER(b.from_city) = LOWER($1)
+                        AND LOWER(b.to_city) = LOWER($2)
+                        AND b.time = $3
+                  )
+            `, [fromCity, toCity, time, price, companyName]);
+        }
+
         console.log("🚀 Database Schema Verified.");
     } catch (err) {
         console.error("❌ Error creating tables:", err);
     }
 }
-createTables();
+initializeDatabase();
+
+setInterval(async () => {
+    try {
+        await pool.query(`
+            UPDATE bookings 
+            SET payment_status='EXPIRED'
+            WHERE payment_status='PROCESSING'
+            AND created_at < NOW() - INTERVAL '10 minutes'
+        `);
+    } catch (err) {
+        console.error('❌ Failed to expire old payments:', err);
+    }
+}, 60000); // every 1 minute
 
 // --- PASSENGER AUTH APIs ---
 
@@ -115,61 +171,172 @@ app.get("/api/buses", async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT b.id, b.price, b.time, b.from_city, b.to_city, c.name as company 
+            `SELECT b.id, b.price, b.time, b.from_city, b.to_city, COALESCE(b.total_seats, 30) as total_seats,
+                    c.name as company,
+                    (COALESCE(b.total_seats, 30) - (SELECT COUNT(*) FROM bookings bk WHERE bk.bus_id = b.id AND bk.status = 'PAID')) as seats_left
              FROM buses b
-             JOIN companies c ON b.company_id = c.id 
+             JOIN companies c ON b.company_id = c.id
              WHERE LOWER(b.from_city) = LOWER($1) AND LOWER(b.to_city) = LOWER($2)`,
             [from, to]
         );
         res.json(result.rows);
     } catch (err) {
+        console.error("Failed to fetch buses:", err);
         res.status(500).json({ error: "Failed to fetch buses" });
     }
 });
 
 app.post('/api/book', async (req, res) => {
-    const { busId, name, phone } = req.body;
-    if (!busId || !name || !phone) return res.status(400).json({ error: "Missing information" });
+    const { busId, name, phone, company_id } = req.body;
 
     try {
-        const bus = await pool.query('SELECT company_id FROM buses WHERE id = $1', [busId]);
-        if (bus.rows.length === 0) return res.status(404).json({ error: "Bus not found" });
+        const bus = await pool.query(
+            'SELECT id, company_id, COALESCE(total_seats, 30) as total_seats FROM buses WHERE id=$1',
+            [busId]
+        );
+
+        if (bus.rows.length === 0) {
+            return res.status(404).json({ error: "Bus not found" });
+        }
+
+        const capacity = parseInt(bus.rows[0].total_seats, 10) || 30;
+        const count = await pool.query(
+            "SELECT COUNT(*) FROM bookings WHERE bus_id=$1 AND status='PAID'",
+            [busId]
+        );
+
+        const booked = parseInt(count.rows[0].count, 10);
+
+        if (booked >= capacity) {
+            return res.status(400).json({ error: "Bus is full" });
+        }
+
+        const seatNumber = booked + 1;
+        const bookingCompanyId = company_id || bus.rows[0].company_id;
 
         const result = await pool.query(
-            'INSERT INTO bookings (bus_id, company_id, name, phone) VALUES ($1, $2, $3, $4) RETURNING id',
-            [busId, bus.rows[0].company_id, name, phone]
+            `INSERT INTO bookings (bus_id, company_id, name, phone, seat_number, status, payment_status)
+             VALUES ($1, $2, $3, $4, $5, 'PENDING', 'PENDING')
+             RETURNING id`,
+            [busId, bookingCompanyId, name, phone, seatNumber]
         );
+
         res.json({ success: true, bookingId: result.rows[0].id });
+
     } catch (err) {
+        console.error("Booking failed:", err);
         res.status(500).json({ error: "Booking failed" });
     }
 });
+// This runs once every 60 seconds independently
+setInterval(async () => {
+    try {
+        await pool.query(`
+            UPDATE bookings
+            SET payment_status='EXPIRED'
+            WHERE payment_status='PROCESSING'
+            AND created_at < NOW() - INTERVAL '5 minutes'
+        `);
+    } catch (err) {
+        console.error("Cleanup error:", err);
+    }
+}, 60000);
+
+const QRCode = require('qrcode');
 
 app.get('/api/ticket/:id', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT bk.id as booking_id, bk.name as passenger_name, bk.status,
-                   bs.from_city, bs.to_city, bs.time, c.name as company_name
-            FROM bookings bk
-            JOIN buses bs ON bk.bus_id = bs.id
-            JOIN companies c ON bk.company_id = c.id
-            WHERE bk.id = $1`, [req.params.id]);
+            SELECT b.*, bs.price, bs.time, bs.from_city, bs.to_city, c.name as company_name
+            FROM bookings b
+            LEFT JOIN buses bs ON b.bus_id = bs.id
+            LEFT JOIN companies c ON b.company_id = c.id
+            WHERE b.id = $1
+        `, [req.params.id]);
 
-        if (result.rows.length === 0) return res.status(404).json({ error: "Ticket not found" });
-        res.json(result.rows[0]);
+        const booking = result.rows[0];
+        if (!booking) return res.status(404).json({ error: 'Booking not found' });
+
+        const qr = await QRCode.toDataURL(`TICKET-${booking.id}`);
+        res.json({ ...booking, qr });
     } catch (err) {
-        res.status(500).json({ error: "Database error" });
+        console.error('Ticket lookup failed:', err);
+        res.status(500).json({ error: 'Ticket lookup failed' });
+    }
+});
+
+app.post('/api/pay-request', async (req, res) => {
+    const { bookingId, phone } = req.body;
+
+    try {
+        const ref = "TX-" + Date.now();
+
+        await pool.query(
+            "UPDATE bookings SET payment_status='PROCESSING', payment_reference=$1 WHERE id=$2",
+            [ref, bookingId]
+        );
+
+        // 🔥 REALISTIC OUTCOMES
+        setTimeout(async () => {
+            const rand = Math.random();
+
+            let status = "PAID";
+
+            if (rand < 0.2) status = "FAILED";      // 20% fail
+            else if (rand < 0.4) status = "EXPIRED"; // 20% timeout
+
+            await pool.query(
+                "UPDATE bookings SET payment_status=$1, status=$2 WHERE id=$3",
+                [status, status === "PAID" ? "PAID" : "PENDING", bookingId]
+            );
+
+            // --- ADDED MESSAGE START ---
+            if (status === "PAID") {
+                sendSMS(phone, "✅ Payment received. Your ticket is confirmed!");
+            }
+            // --- ADDED MESSAGE END ---
+
+            console.log(`💳 Payment ${status} for booking ${bookingId}`);
+        }, 5000);
+
+        res.json({ success: true, ref });
+
+    } catch (err) {
+        res.status(500).json({ error: "Payment request failed" });
+    }
+});
+
+app.post('/api/payment-callback', async (req, res) => {
+    const { bookingId, status } = req.body;
+
+    try {
+        await pool.query(
+            "UPDATE bookings SET payment_status=$1, status=$2 WHERE id=$3",
+            [status, status === "PAID" ? "PAID" : "PENDING", bookingId]
+        );
+
+        res.send("Callback processed");
+    } catch (err) {
+        res.status(500).send("Callback error");
     }
 });
 
 app.post('/api/pay', async (req, res) => {
-    const { bookingId } = req.body;
+    const { bookingId, paymentReference } = req.body;
     try {
         const result = await pool.query(
-            "UPDATE bookings SET status = 'PAID' WHERE id = $1 RETURNING id",
-            [bookingId]
+            "UPDATE bookings SET status = 'PAID', payment_status = 'PAID', payment_reference = COALESCE($2, payment_reference) WHERE id = $1 RETURNING *",
+            [bookingId, paymentReference]
         );
+
         if (result.rows.length === 0) return res.status(404).json({ error: "Booking not found" });
+
+        // --- Added SMS Logic ---
+        const booking = result.rows[0];
+        const msg = `Confirmed! Booking #${booking.id} for ${booking.name}. Seat: ${booking.seat_number}. Ref: ${paymentReference}`;
+        sendSMS(booking.phone, msg);
+        // -----------------------
+
         res.json({ success: true, message: "Payment verified" });
     } catch (err) {
         res.status(500).json({ error: "Payment update failed" });
