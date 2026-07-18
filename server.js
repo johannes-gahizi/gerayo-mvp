@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
+const crypto = require('crypto');
+const { buildTicketResponse, hashPassword, verifyPassword, sendPasswordResetEmail } = require('./server-utils');
 
 const app = express();
 app.use(express.json());
@@ -71,6 +73,15 @@ async function initializeDatabase() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 seat_number INTEGER
             );
+
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id SERIAL PRIMARY KEY,
+                email TEXT NOT NULL,
+                token TEXT UNIQUE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP NOT NULL,
+                used_at TIMESTAMP
+            );
         `);
 
         await pool.query(`ALTER TABLE buses ADD COLUMN IF NOT EXISTS total_seats INTEGER DEFAULT 30;`);
@@ -138,7 +149,7 @@ app.post("/api/signup", async (req, res) => {
     try {
         const result = await pool.query(
             "INSERT INTO users (fullname, email, password) VALUES ($1, $2, $3) RETURNING id, fullname",
-            [fullname, email, password]
+            [fullname, email, hashPassword(password)]
         );
         res.json({ success: true, token: result.rows[0].id, userName: result.rows[0].fullname });
     } catch (err) {
@@ -150,16 +161,92 @@ app.post("/api/user-login", async (req, res) => {
     const { email, password } = req.body;
     try {
         const result = await pool.query(
-            "SELECT id, fullname FROM users WHERE email=$1 AND password=$2",
-            [email, password]
+            "SELECT id, fullname, password FROM users WHERE email=$1",
+            [email]
         );
-        if (result.rows.length > 0) {
+
+        if (result.rows.length > 0 && verifyPassword(password, result.rows[0].password)) {
             res.json({ success: true, token: result.rows[0].id, userName: result.rows[0].fullname });
         } else {
             res.status(401).json({ success: false, error: "Invalid email or password" });
         }
     } catch (err) {
         res.status(500).json({ error: "Server authentication error" });
+    }
+});
+
+app.post("/api/user/forgot-password", async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+    }
+
+    try {
+        const user = await pool.query("SELECT id FROM users WHERE email = $1", [email]);
+
+        if (user.rows.length > 0) {
+            const token = crypto.randomBytes(24).toString('hex');
+            const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
+            const protocol = req.headers['x-forwarded-proto'] || 'http';
+            const host = req.get('host') || `localhost:${process.env.PORT || 3000}`;
+            const baseUrl = process.env.APP_BASE_URL || `${protocol}://${host}`;
+            const resetUrl = `${baseUrl}/reset-password.html?token=${token}`;
+
+            await pool.query(
+                "INSERT INTO password_reset_tokens (email, token, expires_at) VALUES ($1, $2, $3)",
+                [email, token, expiresAt]
+            );
+
+            await sendPasswordResetEmail({ to: email, resetUrl, appName: 'Gerayo' });
+
+            return res.json({
+                success: true,
+                message: "A password reset email has been sent if the account exists.",
+                resetUrl
+            });
+        }
+
+        return res.json({
+            success: true,
+            message: "A password reset email has been sent if the account exists.",
+            resetUrl: null
+        });
+    } catch (err) {
+        console.error("Forgot password failed:", err);
+        res.status(500).json({ error: "Could not process password reset request" });
+    }
+});
+
+app.post("/api/user/reset-password", async (req, res) => {
+    const { token, password, confirmPassword } = req.body;
+
+    if (!token || !password || !confirmPassword) {
+        return res.status(400).json({ error: "All fields are required" });
+    }
+
+    if (password !== confirmPassword) {
+        return res.status(400).json({ error: "Passwords do not match" });
+    }
+
+    try {
+        const resetRequest = await pool.query(
+            "SELECT email FROM password_reset_tokens WHERE token = $1 AND used_at IS NULL AND expires_at > NOW()",
+            [token]
+        );
+
+        if (resetRequest.rows.length === 0) {
+            return res.status(400).json({ error: "Reset link is invalid or has expired" });
+        }
+
+        const email = resetRequest.rows[0].email;
+        await pool.query("UPDATE users SET password = $1 WHERE email = $2", [hashPassword(password), email]);
+        await pool.query("UPDATE password_reset_tokens SET used_at = NOW() WHERE token = $1", [token]);
+
+        res.json({ success: true, message: "Password updated successfully" });
+    } catch (err) {
+        console.error("Password reset failed:", err);
+        res.status(500).json({ error: "Could not reset password" });
     }
 });
 
@@ -171,7 +258,7 @@ app.get("/api/buses", async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT b.id, b.price, b.time, b.from_city, b.to_city, COALESCE(b.total_seats, 30) as total_seats,
+            `SELECT b.id, b.company_id, b.price, b.time, b.from_city, b.to_city, COALESCE(b.total_seats, 30) as total_seats,
                     c.name as company,
                     (COALESCE(b.total_seats, 30) - (SELECT COUNT(*) FROM bookings bk WHERE bk.bus_id = b.id AND bk.status = 'PAID')) as seats_left
              FROM buses b
@@ -242,8 +329,6 @@ setInterval(async () => {
     }
 }, 60000);
 
-const QRCode = require('qrcode');
-
 app.get('/api/ticket/:id', async (req, res) => {
     try {
         const result = await pool.query(`
@@ -257,8 +342,16 @@ app.get('/api/ticket/:id', async (req, res) => {
         const booking = result.rows[0];
         if (!booking) return res.status(404).json({ error: 'Booking not found' });
 
-        const qr = await QRCode.toDataURL(`TICKET-${booking.id}`);
-        res.json({ ...booking, qr });
+        const response = await buildTicketResponse(booking, {
+            price: booking.price,
+            time: booking.time,
+            from_city: booking.from_city,
+            to_city: booking.to_city
+        }, {
+            name: booking.company_name
+        });
+
+        res.json(response);
     } catch (err) {
         console.error('Ticket lookup failed:', err);
         res.status(500).json({ error: 'Ticket lookup failed' });

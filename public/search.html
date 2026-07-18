@@ -186,6 +186,7 @@ async function confirmBooking() {
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 busId: selectedBus.id,
+                company_id: selectedBus.company_id || selectedBus.companyId,
                 name,
                 phone
             })
@@ -194,7 +195,9 @@ async function confirmBooking() {
         const data = await res.json();
 
         if (data.success) {
-            window.location.href = `payment.html?bookingId=${data.bookingId}`;
+            const companyId = selectedBus.company_id || selectedBus.companyId || '';
+            const query = companyId ? `?bookingId=${data.bookingId}&company_id=${companyId}` : `?bookingId=${data.bookingId}`;
+            window.location.href = `payment.html${query}`;
         } else {
             alert(data.error || "Booking failed");
         }

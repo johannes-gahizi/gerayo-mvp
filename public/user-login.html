@@ -130,6 +130,21 @@
             color: #94a3b8;
             text-align: right;
             text-decoration: none;
+            cursor: pointer;
+        }
+
+        .forgot-pass:hover {
+            color: var(--primary);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .message {
+            margin-top: 12px;
+            font-size: 0.9rem;
+            color: var(--muted);
         }
     </style>
 </head>
@@ -146,7 +161,16 @@
         <div class="input-group">
             <label>Password</label>
             <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
-            <a href="#" class="forgot-pass">Forgot password?</a>
+            <span class="forgot-pass" onclick="showForgotFlow()">Forgot password?</span>
+        </div>
+        
+        <div id="forgotSection" class="hidden">
+            <div class="input-group">
+                <label>Email Address</label>
+                <input type="email" id="resetEmail" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <button class="btn" id="resetBtn" onclick="requestPasswordReset()">Send reset link</button>
+            <div id="resetMessage" class="message"></div>
         </div>
         
         <button class="btn" id="loginBtn" onclick="loginUser()">Login</button>
@@ -157,6 +181,65 @@
     </div>
 
     <script>
+        function showForgotFlow() {
+            const emailField = document.getElementById('email');
+            const resetEmailField = document.getElementById('resetEmail');
+            const forgotSection = document.getElementById('forgotSection');
+
+            if (!resetEmailField.value) {
+                resetEmailField.value = emailField.value.trim();
+            }
+
+            forgotSection.classList.toggle('hidden');
+            if (!forgotSection.classList.contains('hidden')) {
+                resetEmailField.focus();
+            }
+        }
+
+        async function requestPasswordReset() {
+            const email = document.getElementById('resetEmail').value.trim();
+            const btn = document.getElementById('resetBtn');
+            const message = document.getElementById('resetMessage');
+
+            if (!email) {
+                message.textContent = 'Please enter your email address.';
+                return;
+            }
+
+            btn.innerText = 'Sending...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/user/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+                message.textContent = data.message || 'If an account exists, a reset email has been sent.';
+                if (data.success) {
+                    const resetEmailField = document.getElementById('resetEmail');
+                    const emailField = document.getElementById('email');
+                    emailField.value = resetEmailField.value.trim();
+                    localStorage.setItem('resetEmail', resetEmailField.value.trim());
+                }
+            } catch (err) {
+                message.textContent = 'Could not send reset instructions. Please check SMTP configuration.';
+            } finally {
+                btn.innerText = 'Send reset link';
+                btn.disabled = false;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedEmail = localStorage.getItem('resetEmail');
+            if (savedEmail) {
+                document.getElementById('email').value = savedEmail;
+                document.getElementById('resetEmail').value = savedEmail;
+            }
+        });
+
         async function loginUser() {
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
